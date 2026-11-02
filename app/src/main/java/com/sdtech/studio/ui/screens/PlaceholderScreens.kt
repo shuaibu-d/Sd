@@ -26,13 +26,3 @@ fun LibraryScreen(onEditAgain: (String) -> Unit = {}) {
     ExportsScreen(onEditAgain = onEditAgain)
 }
 
-@Composable
-fun BrandScreen() {
-    ScreenScaffold {
-        SectionHeader(title = stringResource(R.string.brand_title))
-        EmptyState(
-            title = stringResource(R.string.brand_empty_title),
-            description = stringResource(R.string.brand_empty_description)
-        )
-    }
-}

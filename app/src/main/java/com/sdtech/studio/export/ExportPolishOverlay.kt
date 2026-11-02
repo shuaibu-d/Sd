@@ -36,7 +36,7 @@ internal class ExportPolishOverlay(
     }
     private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        typeface = Typeface.create("sans-serif-medium", Typeface.MEDIUM)
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         textSize = (height * 0.026f).coerceIn(24f, 54f)
     }
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

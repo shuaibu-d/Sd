@@ -77,6 +77,7 @@ fun BrandScreen() {
     var editHashtag by remember { mutableStateOf<HashtagGroup?>(null) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    val palette = brand?.palette?.takeIf { it.isNotEmpty() } ?: officialPalette
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         if (uri != null) scope.launch {
@@ -115,7 +116,6 @@ fun BrandScreen() {
         Text("Use PNG or a clear image. Images are processed at a maximum 2048 px edge.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         SectionHeader(title = "Official colours", subtitle = if (brand?.brandLock == true) "Brand lock is on: use palette colours only." else "Tap a colour to edit its hex value.")
-        val palette = brand?.palette?.takeIf { it.isNotEmpty() } ?: officialPalette
         palette.forEachIndexed { index, color ->
             Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(38.dp).clip(RoundedCornerShape(9.dp)).background(parseColor(color.hex)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(9.dp)))
