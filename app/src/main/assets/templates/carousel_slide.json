@@ -1,0 +1,139 @@
+{
+  "id": "carousel_slide",
+  "name": "Carousel Cover + Content",
+  "category": "Social Media",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "topline",
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 2,
+      "shape": "RECTANGLE",
+      "color": "$teal",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "series",
+      "x": 8,
+      "y": 8,
+      "width": 84,
+      "height": 6,
+      "role": "LABEL",
+      "text": "{series}  /  {slide_number}",
+      "sizeSp": 17,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "headline",
+      "x": 8,
+      "y": 23,
+      "width": 84,
+      "height": 25,
+      "role": "HEADING",
+      "text": "{headline}",
+      "sizeSp": 56,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 4,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "accent",
+      "x": 8,
+      "y": 53,
+      "width": 18,
+      "height": 1,
+      "shape": "RECTANGLE",
+      "color": "$gold",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "body",
+      "x": 8,
+      "y": 60,
+      "width": 84,
+      "height": 22,
+      "role": "BODY",
+      "text": "{body}",
+      "sizeSp": 25,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 5,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "footer",
+      "x": 8,
+      "y": 91,
+      "width": 84,
+      "height": 5,
+      "role": "LABEL",
+      "text": "{brand}  •  SWIPE TO CONTINUE  →",
+      "sizeSp": 15,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

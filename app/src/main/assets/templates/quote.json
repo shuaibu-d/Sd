@@ -1,0 +1,139 @@
+{
+  "id": "quote",
+  "name": "Quote",
+  "category": "Inspirational",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "quote_mark",
+      "x": 8,
+      "y": 12,
+      "width": 14,
+      "height": 12,
+      "shape": "CIRCLE",
+      "color": "$teal",
+      "cornerRadius": 18
+    },
+    {
+      "type": "text",
+      "id": "mark",
+      "x": 8,
+      "y": 10,
+      "width": 14,
+      "height": 17,
+      "role": "HEADING",
+      "text": "“",
+      "sizeSp": 88,
+      "color": "$white",
+      "bold": true,
+      "alignment": "CENTER",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "quote",
+      "x": 12,
+      "y": 30,
+      "width": 76,
+      "height": 38,
+      "role": "HEADING",
+      "text": "{quote}",
+      "sizeSp": 48,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 5,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "rule",
+      "x": 12,
+      "y": 73,
+      "width": 16,
+      "height": 1,
+      "shape": "RECTANGLE",
+      "color": "$gold",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "author",
+      "x": 12,
+      "y": 78,
+      "width": 76,
+      "height": 8,
+      "role": "LABEL",
+      "text": "— {author}",
+      "sizeSp": 22,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "source",
+      "x": 12,
+      "y": 88,
+      "width": 76,
+      "height": 5,
+      "role": "BODY",
+      "text": "{source}",
+      "sizeSp": 15,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

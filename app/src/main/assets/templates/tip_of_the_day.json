@@ -1,0 +1,145 @@
+{
+  "id": "tip_of_the_day",
+  "name": "Tip of the Day",
+  "category": "Education",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "topbar",
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 2,
+      "shape": "RECTANGLE",
+      "color": "$teal",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 9,
+      "y": 10,
+      "width": 82,
+      "height": 7,
+      "role": "LABEL",
+      "text": "THE DAILY TIP  /  {date}",
+      "sizeSp": 18,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "number",
+      "x": 8,
+      "y": 20,
+      "width": 30,
+      "height": 28,
+      "role": "HEADING",
+      "text": "01",
+      "sizeSp": 104,
+      "color": "$gold",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "x": 9,
+      "y": 48,
+      "width": 82,
+      "height": 18,
+      "role": "HEADING",
+      "text": "{headline}",
+      "sizeSp": 48,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "body",
+      "x": 9,
+      "y": 69,
+      "width": 82,
+      "height": 19,
+      "role": "BODY",
+      "text": "{body}",
+      "sizeSp": 24,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 4,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "footer",
+      "x": 9,
+      "y": 92,
+      "width": 82,
+      "height": 5,
+      "role": "LABEL",
+      "text": "SAVE THIS • SHARE THE KNOWLEDGE",
+      "sizeSp": 15,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "id": "profile_picture",
+  "name": "Profile Picture",
+  "category": "Branding",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$navy"
+    },
+    {
+      "type": "shape",
+      "id": "outer_ring",
+      "x": 13,
+      "y": 13,
+      "width": 74,
+      "height": 74,
+      "shape": "CIRCLE",
+      "color": "$gold",
+      "cornerRadius": 18
+    },
+    {
+      "type": "shape",
+      "id": "inner_circle",
+      "x": 16,
+      "y": 16,
+      "width": 68,
+      "height": 68,
+      "shape": "CIRCLE",
+      "color": "$teal",
+      "cornerRadius": 18
+    },
+    {
+      "type": "text",
+      "id": "monogram",
+      "x": 20,
+      "y": 35,
+      "width": 60,
+      "height": 25,
+      "role": "HEADING",
+      "text": "{monogram}",
+      "sizeSp": 100,
+      "color": "$white",
+      "bold": true,
+      "alignment": "CENTER",
+      "maxLines": 1,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "name",
+      "x": 15,
+      "y": 89,
+      "width": 70,
+      "height": 5,
+      "role": "LABEL",
+      "text": "{name}",
+      "sizeSp": 16,
+      "color": "$white",
+      "bold": true,
+      "alignment": "CENTER",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "id": "hiring_join_us",
+  "name": "Hiring — Join Us",
+  "category": "Careers",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "side",
+      "x": 0,
+      "y": 0,
+      "width": 7,
+      "height": 100,
+      "shape": "RECTANGLE",
+      "color": "$teal",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 13,
+      "y": 12,
+      "width": 74,
+      "height": 6,
+      "role": "LABEL",
+      "text": "WE’RE HIRING",
+      "sizeSp": 19,
+      "color": "$gold",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "x": 13,
+      "y": 24,
+      "width": 74,
+      "height": 24,
+      "role": "HEADING",
+      "text": "{role}",
+      "sizeSp": 58,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 3,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "body",
+      "x": 13,
+      "y": 53,
+      "width": 74,
+      "height": 17,
+      "role": "BODY",
+      "text": "{body}",
+      "sizeSp": 24,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 4,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "details",
+      "x": 13,
+      "y": 73,
+      "width": 74,
+      "height": 8,
+      "role": "LABEL",
+      "text": "{location}  •  {type}",
+      "sizeSp": 18,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "rule",
+      "x": 13,
+      "y": 85,
+      "width": 74,
+      "height": 1,
+      "shape": "RECTANGLE",
+      "color": "$gold",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "cta",
+      "x": 13,
+      "y": 89,
+      "width": 74,
+      "height": 6,
+      "role": "CTA",
+      "text": "{cta}",
+      "sizeSp": 19,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

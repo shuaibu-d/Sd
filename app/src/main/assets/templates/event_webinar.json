@@ -1,0 +1,190 @@
+{
+  "id": "event_webinar",
+  "name": "Event or Webinar",
+  "category": "Events",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "top",
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 30,
+      "shape": "RECTANGLE",
+      "color": "$navy",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 8,
+      "y": 7,
+      "width": 84,
+      "height": 6,
+      "role": "LABEL",
+      "text": "YOU’RE INVITED",
+      "sizeSp": 18,
+      "color": "$gold",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "event",
+      "x": 8,
+      "y": 16,
+      "width": 84,
+      "height": 12,
+      "role": "HEADING",
+      "text": "{event}",
+      "sizeSp": 45,
+      "color": "$white",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "date",
+      "x": 8,
+      "y": 39,
+      "width": 84,
+      "height": 9,
+      "role": "HEADING",
+      "text": "{date}",
+      "sizeSp": 39,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "time",
+      "x": 8,
+      "y": 50,
+      "width": 84,
+      "height": 6,
+      "role": "LABEL",
+      "text": "{time}  •  {venue}",
+      "sizeSp": 18,
+      "color": "$muted",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "body",
+      "x": 8,
+      "y": 62,
+      "width": 84,
+      "height": 14,
+      "role": "BODY",
+      "text": "{body}",
+      "sizeSp": 22,
+      "color": "$ink",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 3,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "cta_bg",
+      "x": 8,
+      "y": 81,
+      "width": 48,
+      "height": 10,
+      "shape": "ROUNDED_RECTANGLE",
+      "color": "$teal",
+      "cornerRadius": 18
+    },
+    {
+      "type": "text",
+      "id": "cta",
+      "x": 10,
+      "y": 83,
+      "width": 44,
+      "height": 6,
+      "role": "CTA",
+      "text": "{cta}",
+      "sizeSp": 18,
+      "color": "$white",
+      "bold": true,
+      "alignment": "CENTER",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "host",
+      "x": 62,
+      "y": 84,
+      "width": 30,
+      "height": 6,
+      "role": "LABEL",
+      "text": "{host}",
+      "sizeSp": 16,
+      "color": "$muted",
+      "bold": true,
+      "alignment": "END",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "id": "academy_course_promo",
+  "name": "Academy Course Promo",
+  "category": "Education",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "banner",
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 28,
+      "shape": "RECTANGLE",
+      "color": "$navy",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 8,
+      "y": 7,
+      "width": 82,
+      "height": 5,
+      "role": "LABEL",
+      "text": "LEARN • PRACTISE • GROW",
+      "sizeSp": 17,
+      "color": "$gold",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "course",
+      "x": 8,
+      "y": 15,
+      "width": 84,
+      "height": 11,
+      "role": "HEADING",
+      "text": "{course}",
+      "sizeSp": 43,
+      "color": "$white",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "tag",
+      "x": 8,
+      "y": 36,
+      "width": 82,
+      "height": 7,
+      "role": "LABEL",
+      "text": "{level}  /  {duration}",
+      "sizeSp": 18,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "body",
+      "x": 8,
+      "y": 47,
+      "width": 82,
+      "height": 17,
+      "role": "BODY",
+      "text": "{body}",
+      "sizeSp": 24,
+      "color": "$ink",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 4,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "accent",
+      "x": 8,
+      "y": 72,
+      "width": 84,
+      "height": 1,
+      "shape": "RECTANGLE",
+      "color": "$gold",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "cta",
+      "x": 8,
+      "y": 79,
+      "width": 82,
+      "height": 8,
+      "role": "CTA",
+      "text": "{cta}",
+      "sizeSp": 22,
+      "color": "$navy",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "brand",
+      "x": 8,
+      "y": 91,
+      "width": 82,
+      "height": 5,
+      "role": "LABEL",
+      "text": "{brand}",
+      "sizeSp": 15,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

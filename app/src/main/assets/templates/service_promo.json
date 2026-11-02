@@ -1,0 +1,156 @@
+{
+  "id": "service_promo",
+  "name": "Service Promo",
+  "category": "Business",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "accent",
+      "x": 72,
+      "y": 0,
+      "width": 28,
+      "height": 100,
+      "shape": "RECTANGLE",
+      "color": "$navy",
+      "cornerRadius": 0
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 9,
+      "y": 10,
+      "width": 60,
+      "height": 7,
+      "role": "LABEL",
+      "text": "WHAT WE DO",
+      "sizeSp": 18,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "x": 9,
+      "y": 23,
+      "width": 62,
+      "height": 25,
+      "role": "HEADING",
+      "text": "{headline}",
+      "sizeSp": 54,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 3,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "body",
+      "x": 9,
+      "y": 52,
+      "width": 60,
+      "height": 17,
+      "role": "BODY",
+      "text": "{body}",
+      "sizeSp": 23,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 4,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "cta",
+      "x": 9,
+      "y": 78,
+      "width": 58,
+      "height": 8,
+      "role": "CTA",
+      "text": "{cta}",
+      "sizeSp": 22,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "gold_dot",
+      "x": 84,
+      "y": 18,
+      "width": 7,
+      "height": 7,
+      "shape": "CIRCLE",
+      "color": "$gold",
+      "cornerRadius": 18
+    },
+    {
+      "type": "text",
+      "id": "brand",
+      "x": 77,
+      "y": 76,
+      "width": 18,
+      "height": 12,
+      "role": "LABEL",
+      "text": "{brand}",
+      "sizeSp": 17,
+      "color": "$white",
+      "bold": true,
+      "alignment": "CENTER",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

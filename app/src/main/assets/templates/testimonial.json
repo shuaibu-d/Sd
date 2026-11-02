@@ -1,0 +1,156 @@
+{
+  "id": "testimonial",
+  "name": "Testimonial",
+  "category": "Community",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "shape",
+      "id": "panel",
+      "x": 6,
+      "y": 12,
+      "width": 88,
+      "height": 76,
+      "shape": "ROUNDED_RECTANGLE",
+      "color": "$surface",
+      "cornerRadius": 24
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 12,
+      "y": 18,
+      "width": 76,
+      "height": 6,
+      "role": "LABEL",
+      "text": "KIND WORDS",
+      "sizeSp": 18,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "quote",
+      "x": 12,
+      "y": 29,
+      "width": 76,
+      "height": 32,
+      "role": "HEADING",
+      "text": "“{quote}”",
+      "sizeSp": 37,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 5,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "avatar",
+      "x": 12,
+      "y": 69,
+      "width": 10,
+      "height": 10,
+      "shape": "CIRCLE",
+      "color": "$teal",
+      "cornerRadius": 18
+    },
+    {
+      "type": "text",
+      "id": "initials",
+      "x": 12,
+      "y": 70,
+      "width": 10,
+      "height": 7,
+      "role": "LABEL",
+      "text": "{initials}",
+      "sizeSp": 17,
+      "color": "$white",
+      "bold": true,
+      "alignment": "CENTER",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "name",
+      "x": 26,
+      "y": 69,
+      "width": 64,
+      "height": 6,
+      "role": "LABEL",
+      "text": "{name}",
+      "sizeSp": 19,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "role",
+      "x": 26,
+      "y": 77,
+      "width": 64,
+      "height": 5,
+      "role": "BODY",
+      "text": "{person_role}",
+      "sizeSp": 16,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}

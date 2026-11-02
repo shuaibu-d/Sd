@@ -1,0 +1,143 @@
+{
+  "id": "project_showcase",
+  "name": "Project Showcase",
+  "category": "Portfolio",
+  "supportedRatios": [
+    "1:1",
+    "4:5",
+    "9:16",
+    "16:9"
+  ],
+  "themes": [
+    {
+      "id": "light",
+      "name": "Light",
+      "colors": {
+        "navy": "#102B35",
+        "teal": "#159B98",
+        "gold": "#D5B66D",
+        "paper": "#F7F9F8",
+        "ink": "#18343B",
+        "muted": "#60747A",
+        "white": "#FFFFFF",
+        "surface": "#EAF0EF"
+      }
+    },
+    {
+      "id": "dark",
+      "name": "Dark",
+      "colors": {
+        "navy": "#0B2028",
+        "teal": "#35C4B8",
+        "gold": "#D5B66D",
+        "paper": "#0B2028",
+        "ink": "#F4F7F6",
+        "muted": "#B5C7C8",
+        "white": "#FFFFFF",
+        "surface": "#15343D"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "background",
+      "id": "bg",
+      "kind": "SOLID",
+      "color": "$paper"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "x": 8,
+      "y": 7,
+      "width": 84,
+      "height": 6,
+      "role": "LABEL",
+      "text": "SELECTED WORK  /  {year}",
+      "sizeSp": 17,
+      "color": "$teal",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "shape",
+      "id": "device_outer",
+      "x": 14,
+      "y": 17,
+      "width": 72,
+      "height": 58,
+      "shape": "ROUNDED_RECTANGLE",
+      "color": "$navy",
+      "cornerRadius": 28
+    },
+    {
+      "type": "shape",
+      "id": "device_inner",
+      "x": 17,
+      "y": 20,
+      "width": 66,
+      "height": 52,
+      "shape": "ROUNDED_RECTANGLE",
+      "color": "$surface",
+      "cornerRadius": 20
+    },
+    {
+      "type": "image_slot",
+      "id": "project_image",
+      "x": 19,
+      "y": 22,
+      "width": 62,
+      "height": 48,
+      "slot": "project",
+      "fit": "FIT"
+    },
+    {
+      "type": "shape",
+      "id": "device_home",
+      "x": 46,
+      "y": 70,
+      "width": 8,
+      "height": 1,
+      "shape": "ROUNDED_RECTANGLE",
+      "color": "$gold",
+      "cornerRadius": 3
+    },
+    {
+      "type": "text",
+      "id": "project",
+      "x": 8,
+      "y": 80,
+      "width": 84,
+      "height": 9,
+      "role": "HEADING",
+      "text": "{project}",
+      "sizeSp": 36,
+      "color": "$ink",
+      "bold": true,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    },
+    {
+      "type": "text",
+      "id": "description",
+      "x": 8,
+      "y": 90,
+      "width": 84,
+      "height": 6,
+      "role": "BODY",
+      "text": "{description}",
+      "sizeSp": 18,
+      "color": "$muted",
+      "bold": false,
+      "alignment": "START",
+      "maxLines": 2,
+      "autoFit": true,
+      "font": "HEADING"
+    }
+  ]
+}
