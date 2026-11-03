@@ -85,7 +85,7 @@ class EditorViewModel(application: Application, private val templateId: String) 
     }
 
     private fun defaultValues(template: Template): Map<String, String> {
-        val keys = Regex("\\{([A-Za-z0-9_.-]+)}")
+        val keys = Regex("""\{([A-Za-z0-9_.-]+)\}""")
         val samples = TemplateSamples.values
         val values = template.layers.filterIsInstance<TemplateLayer.Text>()
             .flatMap { layer -> keys.findAll(layer.text).map { it.groupValues[1] }.toList() }
