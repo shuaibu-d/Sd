@@ -23,6 +23,6 @@ fun StudioScreen(onOpenTemplateDebug: () -> Unit = {}) {
 
 @Composable
 fun LibraryScreen(onEditAgain: (String) -> Unit = {}) {
-    ExportsScreen(onEditAgain = onEditAgain)
+    ExportsContent(onEditAgain = {})
 }
 
