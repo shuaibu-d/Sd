@@ -60,7 +60,7 @@ enum class ExportLogoVariant { FULL, ICON }
 data class VideoExportRequest(
     val projectId: String,
     val preset: VideoExportPreset,
-    val logoVariant: ExportLogoVariant = ExportLogoVariant.FULL,
+    val logoVariant: ExportLogoVariant = ExportLogoVariant.ICON,
     val use720p: Boolean = false,
     val burnCaptions: Boolean = false,
     val showProgressBar: Boolean = false,
@@ -162,7 +162,7 @@ class VideoExportPreparer(private val context: Context) {
                             .build()
                     ).build()
                 val presentation = Presentation.createForWidthAndHeight(
-                    width, height, Presentation.LAYOUT_SCALE_TO_FIT
+                    width, height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
                 )
                 val item = EditedMediaItem.Builder(media)
                     .setRemoveAudio(true)
@@ -190,11 +190,11 @@ class VideoExportPreparer(private val context: Context) {
                     val adjusted = if (bg == null) template else {
                         val replacement = when (scene.backgroundType) {
                             SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID,
-                                color = brand?.palette?.firstOrNull()?.hex ?: "#102B35")
+                                color = brand?.palette?.firstOrNull()?.hex ?: "#101C2C")
                             SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT,
-                                color = "#102B35", endColor = "#159B98")
+                                color = "#101C2C", endColor = "#16A6A0")
                             SceneBackgroundType.IMAGE -> bg.copy(kind = BackgroundKind.IMAGE, imageAsset = "scene_bg")
-                            SceneBackgroundType.VIDEO_CLIP -> bg.copy(kind = BackgroundKind.SOLID, color = "#102B35")
+                            SceneBackgroundType.VIDEO_CLIP -> bg.copy(kind = BackgroundKind.SOLID, color = "#101C2C")
                         }
                         template.copy(layers = template.layers.map { if (it.id == bg.id) replacement else it })
                     }.let { t -> t.copy(layers = t.layers.filterNot { it is TemplateLayer.LogoSlot }) }
@@ -322,17 +322,18 @@ class VideoExportPreparer(private val context: Context) {
                     original.width.toFloat() / original.height)
                 val scaleX = width.toFloat() / profile.width
                 val scaleY = height.toFloat() / profile.height
-                val logoWidth = (placement.width * scaleX).roundToInt().coerceAtLeast(1)
-                val logoHeight = (placement.height * scaleY).roundToInt().coerceAtLeast(1)
+                val lockupFactor = if (logo.type.name == "ICON") 1f else 1.7f
+                val logoWidth = (placement.width * scaleX * lockupFactor).roundToInt().coerceAtLeast(1)
+                val logoHeight = (placement.height * scaleY * lockupFactor).roundToInt().coerceAtLeast(1)
                 val scaled = Bitmap.createScaledBitmap(original, logoWidth, logoHeight, true)
                 if (scaled !== original) original.recycle()
-                val rightEdge = placement.x * scaleX + logoWidth
+                val rightEdge = (placement.x + placement.width) * scaleX
                 val topEdge = placement.y * scaleY
                 val bgAnchorX = (2f * rightEdge / width) - 1f
                 val bgAnchorY = 1f - (2f * topEdge / height)
                 val settings = StaticOverlaySettings.Builder()
                     .setBackgroundFrameAnchor(bgAnchorX, bgAnchorY)
-                    .setOverlayFrameAnchor(-1f, -1f)
+                    .setOverlayFrameAnchor(1f, 1f)
                     .build()
                 overlays += BitmapOverlay.createStaticBitmapOverlay(scaled, settings)
             }
@@ -343,7 +344,7 @@ class VideoExportPreparer(private val context: Context) {
                 height = height,
                 scenes = payload.scenes.map { it.text },
                 durationsMs = durations,
-                brandAccent = brand?.palette?.getOrNull(1)?.hex ?: "#159B98",
+                brandAccent = brand?.palette?.getOrNull(1)?.hex ?: "#16A6A0",
                 captionsEnabled = request.burnCaptions,
                 progressEnabled = request.showProgressBar
             )
@@ -456,7 +457,7 @@ class VideoExportPreparer(private val context: Context) {
         SceneType.OUTRO -> mapOf(
             "headline" to safeText.lineSequence().firstOrNull().orEmpty(),
             "cta" to safeText.lineSequence().drop(1).joinToString(" ").ifBlank { brand?.defaultCta?.takeIf(String::isNotBlank) ?: "FOLLOW FOR MORE" },
-            "monogram" to (brand?.name?.take(2)?.uppercase() ?: "KA")
+            "monogram" to (brand?.name?.take(2)?.uppercase() ?: "SD")
         )
         SceneType.INTRO -> mapOf(
             "label" to (brand?.name ?: "INTRODUCTION").uppercase(), "keyword" to "",

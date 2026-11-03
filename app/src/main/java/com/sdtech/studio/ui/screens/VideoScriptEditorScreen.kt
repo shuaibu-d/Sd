@@ -44,11 +44,11 @@ import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoScriptEditorScreen(onBack: () -> Unit = {}, onOpenVoiceOver: (String) -> Unit = {}, onOpenPreview: (String) -> Unit = {}) {
+fun VideoScriptEditorScreen(projectIdArg: String? = null, onBack: () -> Unit = {}, onOpenVoiceOver: (String) -> Unit = {}, onOpenPreview: (String) -> Unit = {}) {
     val context = LocalContext.current
     val app = remember(context) { (context.applicationContext as SDStudioApplication).appContainer }
     val scope = rememberCoroutineScope()
-    var projectId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
+    var projectId by rememberSaveable { mutableStateOf(projectIdArg ?: UUID.randomUUID().toString()) }
     var ratio by rememberSaveable { mutableStateOf("9:16") }
     var projectTitle by rememberSaveable { mutableStateOf("Explainer video") }
     var script by rememberSaveable { mutableStateOf("") }
@@ -145,21 +145,21 @@ fun VideoScriptEditorScreen(onBack: () -> Unit = {}, onOpenVoiceOver: (String) -
                 val bg = original.layers.filterIsInstance<TemplateLayer.Background>().firstOrNull()
                 val adjustedBackground = if (bg != null) {
                     val next = when (scene.backgroundType) {
-                        SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID, color = brandKit?.palette?.firstOrNull()?.hex ?: "#102B35")
-                        SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT, color = "#102B35", endColor = "#159B98")
+                        SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID, color = brandKit?.palette?.firstOrNull()?.hex ?: "#101C2C")
+                        SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT, color = "#101C2C", endColor = "#16A6A0")
                         SceneBackgroundType.IMAGE, SceneBackgroundType.VIDEO_CLIP -> bg.copy(kind = BackgroundKind.IMAGE, imageAsset = "scene_bg")
                     }
                     original.copy(layers = original.layers.map { if (it.id == bg.id) next else it })
                 } else original
                 val withImageOverlay = if (scene.backgroundType == SceneBackgroundType.IMAGE || scene.backgroundType == SceneBackgroundType.VIDEO_CLIP) {
                     val overlay = TemplateLayer.Shape(id = "scene_image_overlay", x = 0f, y = 0f, width = 100f, height = 100f,
-                        shape = ShapeKind.RECTANGLE, color = "#66071C24")
+                        shape = ShapeKind.RECTANGLE, color = "#66101C2C")
                     val firstText = adjustedBackground.layers.indexOfFirst { it is TemplateLayer.Text }.let { if (it < 0) adjustedBackground.layers.size else it }
                     adjustedBackground.copy(layers = adjustedBackground.layers.toMutableList().also { it.add(firstText, overlay) })
                 } else adjustedBackground
                 val adjusted = withImageOverlay
                 val values = when (scene.type) {
-                    SceneType.OUTRO -> mapOf("headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "cta" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.defaultCta?.takeIf { it.isNotBlank() } ?: "FOLLOW FOR MORE" }, "monogram" to (brandKit?.name?.take(2)?.uppercase() ?: "KA"))
+                    SceneType.OUTRO -> mapOf("headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "cta" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.defaultCta?.takeIf { it.isNotBlank() } ?: "FOLLOW FOR MORE" }, "monogram" to (brandKit?.name?.take(2)?.uppercase() ?: "SD"))
                     SceneType.INTRO -> mapOf("label" to (brandKit?.name ?: "INTRODUCTION").uppercase(), "keyword" to "", "headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "footer" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.slogan?.takeIf { it.isNotBlank() } ?: "Your brand. Your story." })
                     SceneType.CONTENT -> {
                         val words = scene.text.trim().split(Regex("\\s+")).filter(String::isNotBlank)
@@ -180,14 +180,13 @@ fun VideoScriptEditorScreen(onBack: () -> Unit = {}, onOpenVoiceOver: (String) -
                     )
                 }.getOrNull()
                 image?.recycle()
-                if (bitmap != null) output[scene.id] = Bitmap.createScaledBitmap(bitmap, 220, (220 * RatioProfile.forRatio(ratio).height.toFloat() / RatioProfile.forRatio(ratio).width).toInt(), true).also { bitmap.recycle() }
+                if (bitmap != null) output[scene.id] = Bitmap.createScaledBitmap(bitmap, 220, (220 * RatioProfile.forRatio(ratio).height.toFloat() / RatioProfile.forRatio(ratio).width).toInt(), true).also { if (it !== bitmap) bitmap.recycle() }
             }
             output
         }
         previewBitmaps = rendered
     }
 
-    DisposableEffect(previewBitmaps) { onDispose { previewBitmaps.values.forEach { it.recycle() } } }
 
     val selected = scenes.getOrNull(selectedIndex)
     Scaffold(

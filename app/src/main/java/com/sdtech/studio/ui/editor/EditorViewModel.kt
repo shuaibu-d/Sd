@@ -44,9 +44,9 @@ data class EditorDraft(
     val slides: List<EditorSlide> = listOf(EditorSlide()),
     val activeSlide: Int = 0,
     val ratio: String = "1:1",
-    val darkTheme: Boolean = false,
+    val darkTheme: Boolean = true,
     val logoPlacement: String = "SAFE",
-    val logoVariant: String = "FULL",
+    val logoVariant: String = "ICON",
     val showSafeZones: Boolean = false,
     val brandLock: Boolean = true
 )
@@ -85,18 +85,17 @@ class EditorViewModel(application: Application, private val templateId: String) 
     }
 
     private fun defaultValues(template: Template): Map<String, String> {
-        val defaults = mapOf("headline" to "Ideas into impact.", "body" to "Share useful ideas, practical advice and meaningful updates.",
-            "cta" to "Learn more", "quote" to "Great things are done by a series of small things brought together.",
-            "author" to "Your name", "brand" to "YOUR BRAND", "course" to "Build skills that matter", "name" to "Your name",
-            "project" to "A better digital experience", "description" to "Thoughtful design. Useful technology.",
-            "event" to "Ideas for the future", "role" to "Creative Designer", "monogram" to "KA", "slide_number" to "01 / 05")
         val keys = Regex("\\{([A-Za-z0-9_.-]+)}")
-        val values = template.layers.filterIsInstance<TemplateLayer.Text>().flatMap { keys.findAll(it.text).map { m -> m.groupValues[1] } }
-            .distinct().associateWith { defaults[it] ?: it.replace('_', ' ').replaceFirstChar(Char::uppercase) }.toMutableMap()
+        val samples = TemplateSamples.values
+        val values = template.layers.filterIsInstance<TemplateLayer.Text>()
+            .flatMap { layer -> keys.findAll(layer.text).map { it.groupValues[1] }.toList() }
+            .distinct()
+            .associateWith { samples[it] ?: it.replace('_', ' ').replaceFirstChar(Char::uppercase) }
+        val result = values.toMutableMap()
         template.layers.filterIsInstance<TemplateLayer.Text>().forEach { layer ->
-            values[layer.id] = Regex("\\{([A-Za-z0-9_.-]+)}").replace(layer.text) { m -> values[m.groupValues[1]] ?: m.value }
+            result[layer.id] = keys.replace(layer.text) { m -> values[m.groupValues[1]] ?: m.value }
         }
-        return values
+        return result
     }
 
     private fun mutate(transform: (EditorDraft) -> EditorDraft) {

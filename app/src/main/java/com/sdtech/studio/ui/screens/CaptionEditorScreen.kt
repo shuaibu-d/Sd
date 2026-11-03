@@ -53,7 +53,7 @@ fun CaptionEditorScreen(projectId: String, onBack: () -> Unit = {}) {
         }
     }
 
-    ScreenScaffold {
+    ScreenScaffold(title = "Caption", onBack = onBack) {
         SectionHeader(title = "Caption editor", subtitle = project?.title ?: "Attach reusable copy to this project")
         if (project == null) {
             Text("Loading project…", color = MaterialTheme.colorScheme.onSurfaceVariant)

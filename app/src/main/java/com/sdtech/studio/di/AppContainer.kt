@@ -28,5 +28,5 @@ class AppContainer(context: Context) {
     )
     val exportRepository = ExportRepository(database.exportRecordDao())
     val plannerRepository = PlannerRepository(database.plannerItemDao())
-    val firstLaunchSeeder = FirstLaunchSeeder(database, settingsRepository)
+    val firstLaunchSeeder = FirstLaunchSeeder(context.applicationContext, database, settingsRepository)
 }

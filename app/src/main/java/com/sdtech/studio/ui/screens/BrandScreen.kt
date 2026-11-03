@@ -101,12 +101,12 @@ fun BrandScreen() {
         Text("Select a logo slot", style = MaterialTheme.typography.labelLarge)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             LogoType.entries.forEach { type ->
-                FilterChip(selected = selectedSlot == type, onClick = { selectedSlot = type }, label = { Text(type.name) })
+                FilterChip(selected = selectedSlot == type, onClick = { selectedSlot = type }, label = { Text(logoSlotLabel(type)) })
             }
         }
         LogoType.entries.forEach { type ->
             val slotLogo = logos.firstOrNull { it.type == type }
-            Text(type.name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 5.dp))
+            Text(logoSlotLabel(type), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 5.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 LogoTile(slotLogo?.filePath, Color(0xFF101C2C), "Navy", Modifier.weight(1f))
                 LogoTile(slotLogo?.filePath, Color.White, "White", Modifier.weight(1f))
@@ -336,4 +336,12 @@ private fun parseColor(hex: String): Color = runCatching { Color(android.graphic
 private fun defaultBrand() = BrandKit(name = "SD Technologies", slogan = "Create Without Limits.", palette = officialPalette, website = "", whatsapp = "", handle = "", defaultCta = "Create Without Limits.", brandLock = true)
 private suspend fun saveBrand(current: BrandKit, repository: com.sdtech.studio.data.repository.BrandKitRepository, palette: List<PaletteColor>? = null, brandLock: Boolean? = null) {
     repository.saveBrandKit(current.copy(palette = palette ?: current.palette.ifEmpty { officialPalette }, brandLock = brandLock ?: current.brandLock))
+}
+
+
+private fun logoSlotLabel(type: LogoType): String = when (type) {
+    LogoType.FULL -> "Full logo (default)"
+    LogoType.ICON -> "Icon / monogram"
+    LogoType.LIGHT -> "For light backgrounds"
+    LogoType.DARK -> "For dark backgrounds"
 }

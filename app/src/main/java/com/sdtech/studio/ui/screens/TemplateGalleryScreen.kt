@@ -5,16 +5,35 @@ import android.graphics.Bitmap.createScaledBitmap
 import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,71 +41,47 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sdtech.studio.SDStudioApplication
-import com.sdtech.studio.render.*
-import com.sdtech.studio.ui.components.ScreenScaffold
+import com.sdtech.studio.render.Template
+import com.sdtech.studio.render.TemplateContent
+import com.sdtech.studio.render.TemplateRenderer
+import com.sdtech.studio.render.TemplateRepository
+import com.sdtech.studio.render.TemplateSamples
+import com.sdtech.studio.ui.components.BrandScaffold
+import com.sdtech.studio.ui.components.SDIcon
+import com.sdtech.studio.ui.components.SDIconKind
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 private object TemplateThumbnailCache {
-    private val cache = object : LruCache<String, Bitmap>(8 * 1024) {
+    private val cache = object : LruCache<String, Bitmap>(12 * 1024) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
     }
-    fun get(key: String) = cache.get(key)
+    fun get(key: String): Bitmap? = cache.get(key)
     fun put(key: String, bitmap: Bitmap) { cache.put(key, bitmap) }
 }
 
-private val sampleValues = mapOf(
-    "headline" to "Ideas into impact.",
-    "body" to "Share useful ideas, practical advice and meaningful updates with your audience.",
-    "quote" to "Great things are done by a series of small things brought together.",
-    "author" to "Vincent van Gogh",
-    "source" to "A reminder to keep moving forward.",
-    "cta" to "Learn more",
-    "brand" to "YOUR BRAND",
-    "course" to "Build skills that matter",
-    "level" to "ALL LEVELS",
-    "duration" to "6 WEEKS",
-    "initials" to "JD",
-    "name" to "Jordan Davis",
-    "project" to "A better digital experience",
-    "description" to "Thoughtful design. Useful technology.",
-    "year" to "2026",
-    "number1" to "12K+",
-    "label1" to "people reached",
-    "number2" to "94%",
-    "label2" to "positive feedback",
-    "number3" to "250+",
-    "label3" to "projects delivered",
-    "footer" to "Growing together, every day.",
-    "event" to "Ideas for the future",
-    "person_role" to "Learner",
-    "date" to "24 NOVEMBER",
-    "time" to "10:00 AM  •  ONLINE",
-    "venue" to "Virtual",
-    "host" to "YOUR TEAM",
-    "role" to "Creative Designer",
-    "location" to "Remote",
-    "type" to "Full-time",
-    "series" to "THE KNOWLEDGE SERIES",
-    "slide_number" to "01 / 05",
-    "monogram" to "KA"
-)
+private fun ratioValue(ratio: String): Float = when (ratio) { "4:5" -> 0.8f; "9:16" -> 0.5625f; "16:9" -> 1.7778f; else -> 1f }
 
 @Composable
-fun TemplateGalleryScreen(onOpenTemplate: (String) -> Unit, onOpenDebug: () -> Unit = {}) {
+fun TemplateGalleryScreen(onOpenTemplate: (String) -> Unit) {
     val context = LocalContext.current
     val app = remember(context) { context.applicationContext as SDStudioApplication }
     var templates by remember { mutableStateOf(emptyList<Template>()) }
+    var loaded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
     var selectedRatio by remember { mutableStateOf("1:1") }
-    var darkTheme by remember { mutableStateOf(false) }
+    var darkTheme by remember { mutableStateOf(true) }
     var favourites by remember { mutableStateOf(emptySet<String>()) }
+    val logos by app.appContainer.brandKitRepository.logoAssets.collectAsStateWithLifecycle(initialValue = emptyList())
+    val brandKit by app.appContainer.brandKitRepository.brandKit.collectAsStateWithLifecycle(initialValue = null)
 
     LaunchedEffect(Unit) {
-        selectedRatio = app.appContainer.settingsRepository.settings.first().lastUsedRatio
-        templates = withContext(Dispatchers.IO) { TemplateRepository(context).loadAll() }
+        runCatching { selectedRatio = app.appContainer.settingsRepository.settings.first().lastUsedRatio }
+        templates = withContext(Dispatchers.IO) { runCatching { TemplateRepository(context).loadAll() }.getOrDefault(emptyList()) }
+        loaded = true
         val prefs = context.getSharedPreferences("template_gallery", android.content.Context.MODE_PRIVATE)
         favourites = prefs.getStringSet("favourites", emptySet()).orEmpty().toSet()
     }
@@ -97,61 +92,46 @@ fun TemplateGalleryScreen(onOpenTemplate: (String) -> Unit, onOpenDebug: () -> U
             .sortedWith(compareByDescending<Template> { it.id in favourites }.thenBy { it.name })
     }
 
-    ScreenScaffold(scrollable = false) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.weight(1f)) {
-                Text("Templates", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                Text("Choose a design and make it yours.", style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+    BrandScaffold(title = "Posts", subtitle = "Pick a design and make it yours") {
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("1:1", "4:5", "9:16", "16:9").forEach { ratio ->
+                    FilterChip(selected = selectedRatio == ratio, onClick = { selectedRatio = ratio }, label = { Text(ratio) })
+                }
+                FilterChip(selected = darkTheme, onClick = { darkTheme = true }, label = { Text("Dark") })
+                FilterChip(selected = !darkTheme, onClick = { darkTheme = false }, label = { Text("Light") })
             }
-            TextButton(onClick = onOpenDebug) { Text("Preview") }
-        }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Canvas ratio", style = MaterialTheme.typography.titleSmall)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Dark", style = MaterialTheme.typography.labelMedium)
-                Switch(checked = darkTheme, onCheckedChange = { darkTheme = it })
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                categories.forEach { category ->
+                    FilterChip(selected = selectedCategory == category, onClick = { selectedCategory = category }, label = { Text(category) })
+                }
             }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            listOf("1:1", "4:5", "9:16", "16:9").forEach { ratio ->
-                FilterChip(selected = selectedRatio == ratio, onClick = { selectedRatio = ratio }, label = { Text(ratio) })
-            }
-        }
-        Text("Categories", style = MaterialTheme.typography.titleSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            categories.forEach { category ->
-                FilterChip(selected = selectedCategory == category, onClick = { selectedCategory = category }, label = { Text(category) })
-            }
-        }
-
-        if (templates.isEmpty()) {
-            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 20.dp)
-            ) {
-                items(visible, key = { it.id }) { template ->
-                    TemplateGalleryCard(
-                        template = template,
-                        ratio = selectedRatio,
-                        darkTheme = darkTheme,
-                        favourite = template.id in favourites,
-                        onFavourite = {
-                            val updated = if (template.id in favourites) favourites - template.id else favourites + template.id
-                            favourites = updated
-                            context.getSharedPreferences("template_gallery", android.content.Context.MODE_PRIVATE)
-                                .edit().putStringSet("favourites", updated).apply()
-                        },
-                        onClick = { onOpenTemplate(template.id) }
-                    )
+            if (!loaded) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else if (templates.isEmpty()) {
+                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("No templates could be loaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp)
+                ) {
+                    items(visible, key = { it.id }) { template ->
+                        TemplateGalleryCard(
+                            template = template, ratio = selectedRatio, darkTheme = darkTheme,
+                            logoKey = logos.joinToString { "${it.type}${it.id}" }, favourite = template.id in favourites,
+                            onFavourite = {
+                                val updated = if (template.id in favourites) favourites - template.id else favourites + template.id
+                                favourites = updated
+                                context.getSharedPreferences("template_gallery", android.content.Context.MODE_PRIVATE)
+                                    .edit().putStringSet("favourites", updated).apply()
+                            },
+                            onClick = { onOpenTemplate(template.id) },
+                            logos = logos, brandKit = brandKit
+                        )
+                    }
                 }
             }
         }
@@ -160,33 +140,25 @@ fun TemplateGalleryScreen(onOpenTemplate: (String) -> Unit, onOpenDebug: () -> U
 
 @Composable
 private fun TemplateGalleryCard(
-    template: Template,
-    ratio: String,
-    darkTheme: Boolean,
-    favourite: Boolean,
-    onFavourite: () -> Unit,
-    onClick: () -> Unit
+    template: Template, ratio: String, darkTheme: Boolean, logoKey: String, favourite: Boolean,
+    onFavourite: () -> Unit, onClick: () -> Unit,
+    logos: List<com.sdtech.studio.data.local.entity.LogoAsset>, brandKit: com.sdtech.studio.data.local.entity.BrandKit?
 ) {
     val context = LocalContext.current
-    val app = remember(context) { context.applicationContext as SDStudioApplication }
     val themeId = if (darkTheme) "dark" else "light"
-    val cacheKey = "${template.id}|$ratio|$themeId"
+    val cacheKey = "${template.id}|$ratio|$themeId|$logoKey"
     var bitmap by remember(cacheKey) { mutableStateOf(TemplateThumbnailCache.get(cacheKey)) }
 
     LaunchedEffect(cacheKey) {
         if (bitmap == null) {
             bitmap = withContext(Dispatchers.IO) {
                 runCatching {
-                    val renderer = TemplateRenderer(context)
-                    val full = renderer.render(
-                        template,
-                        TemplateContent(values = sampleValues),
-                        ratio,
-                        theme = template.themes.firstOrNull { it.id == themeId },
-                        brandKit = null,
-                        logos = emptyList()
+                    val full = TemplateRenderer(context).render(
+                        template, TemplateContent(values = TemplateSamples.values), ratio,
+                        theme = template.themes.firstOrNull { it.id == themeId } ?: template.themes.firstOrNull(),
+                        brandKit = brandKit, logos = logos
                     )
-                    val targetWidth = 360
+                    val targetWidth = 420
                     val targetHeight = (targetWidth * full.height.toFloat() / full.width).toInt().coerceAtLeast(1)
                     val small = createScaledBitmap(full, targetWidth, targetHeight, true)
                     if (small !== full) full.recycle()
@@ -198,36 +170,27 @@ private fun TemplateGalleryCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
+        onClick = onClick, shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Box {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = "${template.name} template preview",
-                    modifier = Modifier.fillMaxWidth().aspectRatio(
-                        when (ratio) { "4:5" -> .8f; "9:16" -> .5625f; "16:9" -> 1.7778f; else -> 1f }
-                    )
-                )
+            val shown = bitmap
+            if (shown != null) {
+                Image(shown.asImageBitmap(), contentDescription = "${template.name} preview",
+                    modifier = Modifier.fillMaxWidth().aspectRatio(ratioValue(ratio)))
             } else {
-                Box(
-                    Modifier.fillMaxWidth().aspectRatio(
-                        when (ratio) { "4:5" -> .8f; "9:16" -> .5625f; "16:9" -> 1.7778f; else -> 1f }
-                    ).background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(strokeWidth = 2.dp) }
+                Box(Modifier.fillMaxWidth().aspectRatio(ratioValue(ratio)).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                }
             }
             IconButton(onClick = onFavourite, modifier = Modifier.align(Alignment.TopEnd)) {
-                Text(if (favourite) "★" else "☆", style = MaterialTheme.typography.titleLarge,
-                    color = if (favourite) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface)
+                SDIcon(if (favourite) SDIconKind.Star else SDIconKind.StarOutline,
+                    tint = if (favourite) MaterialTheme.colorScheme.tertiary else androidx.compose.ui.graphics.Color.White, size = 22.dp)
             }
         }
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 9.dp)) {
-            Text(template.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(template.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
             Text(template.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
-

@@ -42,7 +42,7 @@ private val platforms = listOf("Instagram", "Facebook", "TikTok", "LinkedIn", "Y
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlannerScreen() {
+fun PlannerScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val app = context.applicationContext as SDStudioApplication
     val repo = app.appContainer.plannerRepository
@@ -60,8 +60,8 @@ fun PlannerScreen() {
         pendingReminder = null
     }
 
-    ScreenScaffold {
-        SectionHeader(title = "Planner", subtitle = "Plan content locally. Nothing is uploaded or synced.")
+    ScreenScaffold(title = "Planner", onBack = onBack) {
+        Text("Plan content locally. Nothing is uploaded or synced.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
                 SegmentedButton(selected = !listMode, onClick = { listMode = false }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)) { Text("Month") }

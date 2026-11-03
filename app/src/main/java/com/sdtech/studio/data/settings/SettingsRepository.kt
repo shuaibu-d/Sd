@@ -18,7 +18,7 @@ class SettingsRepository(context: Context) {
 
     val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
         AppSettings(
-            themeMode = preferences[THEME_MODE] ?: AppSettings.THEME_SYSTEM,
+            themeMode = preferences[THEME_MODE] ?: AppSettings.THEME_DARK,
             onboardingCompleted = preferences[ONBOARDING_COMPLETED] ?: false,
             lastUsedRatio = preferences[LAST_USED_RATIO] ?: "1:1",
             defaultLogoMode = preferences[DEFAULT_LOGO_MODE] ?: "SAFE"

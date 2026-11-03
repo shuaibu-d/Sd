@@ -7,9 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.sdtech.studio.R
 
 @Composable
 fun BrandButton(
@@ -29,6 +27,6 @@ fun BrandButton(
             contentColor = MaterialTheme.colorScheme.onPrimary
         )
     ) {
-        Text(text = text, style = MaterialTheme.typography.labelLarge)
+        Text(text = text, style = MaterialTheme.typography.titleSmall)
     }
 }

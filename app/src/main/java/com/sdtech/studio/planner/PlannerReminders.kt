@@ -40,7 +40,7 @@ class PlannerReminderReceiver : BroadcastReceiver() {
         PlannerReminders.createChannel(context)
         val itemId = intent.getLongExtra("item_id", 0L)
         val notification = NotificationCompat.Builder(context, PlannerReminders.CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(com.sdtech.studio.R.drawable.ic_stat_sd)
             .setContentTitle(intent.getStringExtra("title") ?: "Your scheduled post")
             .setContentText("It's time to review your content plan.")
             .setAutoCancel(true)

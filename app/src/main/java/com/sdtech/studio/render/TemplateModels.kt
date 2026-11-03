@@ -68,6 +68,7 @@ sealed class TemplateLayer {
         val sizeSp: Float = 48f,
         val font: FontFamily = FontFamily.HEADING,
         val bold: Boolean = false,
+        val editable: Boolean = true,
         override val ratioOverrides: Map<String, LayerBounds> = emptyMap()
     ) : TemplateLayer()
 
@@ -160,6 +161,10 @@ object LogoPlacementRules {
             profile.height * topPct / 100f, w, h)
     }
 }
+
+/** Scales a placement by [factor] while keeping its top-right corner fixed (used for wide logo lock-ups). */
+fun LogoPlacement.scaledFromTopRight(factor: Float): LogoPlacement =
+    if (factor == 1f) this else LogoPlacement(x + width - width * factor, y, width * factor, height * factor)
 
 data class TemplateContent(
     val values: Map<String, String> = emptyMap(),

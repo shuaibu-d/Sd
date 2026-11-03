@@ -20,7 +20,7 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val app = context.applicationContext as SDStudioApplication
     val repo = app.appContainer.settingsRepository
@@ -58,7 +58,7 @@ fun SettingsScreen() {
         crashLog = withContext(Dispatchers.IO) { CrashLogger.readLatest(app) }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Settings") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Settings") }, navigationIcon = { IconButton(onClick = onBack) { com.sdtech.studio.ui.components.SDIcon(com.sdtech.studio.ui.components.SDIconKind.Back) } }) }) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)

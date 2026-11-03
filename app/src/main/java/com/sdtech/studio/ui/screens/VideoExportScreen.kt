@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.first
 fun VideoExportScreen(projectId: String, onBack: () -> Unit = {}) {
     val context = LocalContext.current
     var preset by remember { mutableStateOf(VideoExportPreset.REELS) }
-    var logo by remember { mutableStateOf(ExportLogoVariant.FULL) }
+    var logo by remember { mutableStateOf(ExportLogoVariant.ICON) }
     var logoMode by remember { mutableStateOf(com.sdtech.studio.render.LogoPlacementMode.SAFE) }
     var use720p by remember { mutableStateOf(false) }
     var exporting by remember { mutableStateOf(VideoExportService.isExportInProgress()) }

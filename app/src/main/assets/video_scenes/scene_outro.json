@@ -1,18 +1,269 @@
 {
-  "id": "video_scene_outro",
-  "name": "Video – Outro",
-  "category": "Video Scene",
-  "supportedRatios": ["9:16", "4:5", "1:1", "16:9"],
-  "themes": [
-    {"id":"light","name":"Light","colors":{"navy":"#102B35","teal":"#159B98","gold":"#D5B66D","ink":"#102B35","muted":"#52656B","paper":"#FFFFFF"}},
-    {"id":"dark","name":"Dark","colors":{"navy":"#071C24","teal":"#39C5BE","gold":"#D5B66D","ink":"#FFFFFF","muted":"#C2D0D2","paper":"#102B35"}}
-  ],
-  "layers": [
-    {"type":"background","id":"bg","kind":"GRADIENT","color":"#102B35","endColor":"#071C24","x":0,"y":0,"width":100,"height":100},
-    {"type":"shape","id":"accent","shape":"CIRCLE","x":41,"y":17,"width":18,"height":18,"color":"#159B98"},
-    {"type":"text","id":"monogram","role":"HEADING","text":"{monogram}","x":41,"y":21,"width":18,"height":9,"maxLines":1,"sizeSp":45,"color":"#FFFFFF","font":"HEADING","bold":true,"alignment":"CENTER"},
-    {"type":"text","id":"headline","role":"HEADING","text":"{headline}","x":8,"y":43,"width":84,"height":18,"maxLines":2,"sizeSp":52,"color":"#FFFFFF","font":"HEADING","bold":true,"alignment":"CENTER"},
-    {"type":"text","id":"cta","role":"CTA","text":"{cta}","x":12,"y":66,"width":76,"height":9,"maxLines":2,"sizeSp":28,"color":"#D5B66D","font":"MONO","alignment":"CENTER"},
-    {"type":"contact_line","id":"contact","x":8,"y":85,"width":84,"height":6,"includeWebsite":true,"includeWhatsapp":true,"includeHandle":true,"color":"#DCE7E8","sizeSp":18}
-  ]
+ "id": "scene_outro",
+ "name": "Video – Outro",
+ "category": "Video Scene",
+ "supportedRatios": [
+  "1:1",
+  "4:5",
+  "9:16",
+  "16:9"
+ ],
+ "themes": [
+  {
+   "id": "dark",
+   "name": "Dark",
+   "colors": {
+    "navy": "#101C2C",
+    "teal": "#22BDB6",
+    "gold": "#D9B45B",
+    "paper": "#101C2C",
+    "ink": "#F3F5F8",
+    "muted": "#B7C3D3",
+    "white": "#FFFFFF",
+    "surface": "#1B2B40",
+    "card": "#182638",
+    "tint": "#3016A6A0",
+    "tint2": "#14FFFFFF",
+    "onteal": "#101C2C",
+    "line": "#40FFFFFF"
+   }
+  },
+  {
+   "id": "light",
+   "name": "Light",
+   "colors": {
+    "navy": "#101C2C",
+    "teal": "#16A6A0",
+    "gold": "#D9B45B",
+    "paper": "#F3F5F8",
+    "ink": "#101C2C",
+    "muted": "#3A495D",
+    "white": "#FFFFFF",
+    "surface": "#E3E8EF",
+    "card": "#FFFFFF",
+    "tint": "#2616A6A0",
+    "tint2": "#0F101C2C",
+    "onteal": "#FFFFFF",
+    "line": "#33101C2C"
+   }
+  }
+ ],
+ "layers": [
+  {
+   "type": "background",
+   "id": "bg",
+   "kind": "GRADIENT",
+   "color": "$navy",
+   "endColor": "#1B2D44"
+  },
+  {
+   "type": "shape",
+   "id": "orb_a",
+   "shape": "CIRCLE",
+   "color": "$tint",
+   "cornerRadius": 0,
+   "x": 40.0,
+   "y": 62.0,
+   "width": 100.0,
+   "height": 100.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 40.0,
+     "y": 62.0,
+     "width": 100.0,
+     "height": 80.0
+    },
+    "9:16": {
+     "x": 40.0,
+     "y": 62.0,
+     "width": 100.0,
+     "height": 56.25
+    },
+    "16:9": {
+     "x": 60.0,
+     "y": -20.0,
+     "width": 56.25,
+     "height": 100.0
+    }
+   }
+  },
+  {
+   "type": "shape",
+   "id": "accent",
+   "shape": "CIRCLE",
+   "color": "$teal",
+   "cornerRadius": 0,
+   "x": 40.0,
+   "y": 19.407,
+   "width": 20.0,
+   "height": 20.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 40.0,
+     "y": 15.526,
+     "width": 20.0,
+     "height": 16.0
+    },
+    "9:16": {
+     "x": 40.0,
+     "y": 24.688,
+     "width": 20.0,
+     "height": 11.25
+    },
+    "16:9": {
+     "x": 44.375,
+     "y": 19.407,
+     "width": 11.25,
+     "height": 20.0
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "monogram",
+   "role": "HEADING",
+   "text": "{monogram}",
+   "sizeSp": 32,
+   "color": "$onteal",
+   "bold": true,
+   "alignment": "CENTER",
+   "maxLines": 1,
+   "autoFit": true,
+   "font": "HEADING",
+   "x": 40.0,
+   "y": 25.007,
+   "width": 20.0,
+   "height": 10.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 40.0,
+     "y": 20.006,
+     "width": 20.0,
+     "height": 8.0
+    },
+    "9:16": {
+     "x": 40.0,
+     "y": 27.837,
+     "width": 20.0,
+     "height": 5.625
+    },
+    "16:9": {
+     "x": 44.375,
+     "y": 25.007,
+     "width": 11.25,
+     "height": 10.0
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "headline",
+   "role": "HEADING",
+   "text": "{headline}",
+   "sizeSp": 44,
+   "color": "$white",
+   "bold": true,
+   "alignment": "CENTER",
+   "maxLines": 3,
+   "autoFit": true,
+   "font": "HEADING",
+   "x": 8.519,
+   "y": 44.963,
+   "width": 82.963,
+   "height": 20.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 35.97,
+     "width": 82.963,
+     "height": 20.0
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 39.062,
+     "width": 82.963,
+     "height": 20.0
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 44.963,
+     "width": 90.417,
+     "height": 20.0
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "cta",
+   "role": "CTA",
+   "text": "{cta}",
+   "sizeSp": 18,
+   "color": "$gold",
+   "bold": true,
+   "alignment": "CENTER",
+   "maxLines": 3,
+   "autoFit": true,
+   "font": "MONO",
+   "x": 11.074,
+   "y": 65.963,
+   "width": 77.852,
+   "height": 12.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 11.074,
+     "y": 56.97,
+     "width": 77.852,
+     "height": 12.0
+    },
+    "9:16": {
+     "x": 11.074,
+     "y": 60.063,
+     "width": 77.852,
+     "height": 12.0
+    },
+    "16:9": {
+     "x": 6.229,
+     "y": 65.963,
+     "width": 87.542,
+     "height": 12.0
+    }
+   }
+  },
+  {
+   "type": "contact_line",
+   "id": "contact",
+   "color": "#DDE4EE",
+   "sizeSp": 14,
+   "x": 8.519,
+   "y": 85.519,
+   "width": 82.963,
+   "height": 4.63,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 88.415,
+     "width": 82.963,
+     "height": 3.704
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 91.854,
+     "width": 82.963,
+     "height": 2.604
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 85.519,
+     "width": 90.417,
+     "height": 4.63
+    }
+   }
+  },
+  {
+   "type": "logo_slot",
+   "id": "logo",
+   "placement": "SAFE",
+   "logoType": "ICON"
+  }
+ ]
 }

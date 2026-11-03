@@ -15,7 +15,7 @@ enum class StudioDivision { SOFTWARE, AI, ACADEMY, DIGITAL, GENERAL }
 enum class PlannerStatus { IDEA, DRAFT, READY, POSTED }
 
 data class AppSettings(
-    val themeMode: String = THEME_SYSTEM,
+    val themeMode: String = THEME_DARK,
     val onboardingCompleted: Boolean = false,
     val lastUsedRatio: String = "1:1",
     val defaultLogoMode: String = "SAFE"

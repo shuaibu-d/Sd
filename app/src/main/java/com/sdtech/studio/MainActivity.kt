@@ -5,6 +5,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.DisposableEffect
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -43,6 +46,13 @@ class MainActivity : ComponentActivity() {
                 com.sdtech.studio.data.model.AppSettings.THEME_DARK -> true
                 com.sdtech.studio.data.model.AppSettings.THEME_LIGHT -> false
                 else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            DisposableEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark },
+                    navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark }
+                )
+                onDispose { }
             }
             SDStudioTheme(darkTheme = dark) {
                 AppNavigation()

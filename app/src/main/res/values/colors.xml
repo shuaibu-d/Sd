@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sd_navy">#101C2C</color>
+    <color name="sd_teal">#16A6A0</color>
+    <color name="sd_gold">#D9B45B</color>
+    <color name="sd_cloud">#F3F5F8</color>
+    <color name="sd_slate">#263445</color>
+</resources>

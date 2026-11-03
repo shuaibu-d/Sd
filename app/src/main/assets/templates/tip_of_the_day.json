@@ -1,145 +1,404 @@
 {
-  "id": "tip_of_the_day",
-  "name": "Tip of the Day",
-  "category": "Education",
-  "supportedRatios": [
-    "1:1",
-    "4:5",
-    "9:16",
-    "16:9"
-  ],
-  "themes": [
-    {
-      "id": "light",
-      "name": "Light",
-      "colors": {
-        "navy": "#102B35",
-        "teal": "#159B98",
-        "gold": "#D5B66D",
-        "paper": "#F7F9F8",
-        "ink": "#18343B",
-        "muted": "#60747A",
-        "white": "#FFFFFF",
-        "surface": "#EAF0EF"
-      }
+ "id": "tip_of_the_day",
+ "name": "Tip of the Day",
+ "category": "Education",
+ "supportedRatios": [
+  "1:1",
+  "4:5",
+  "9:16",
+  "16:9"
+ ],
+ "themes": [
+  {
+   "id": "light",
+   "name": "Light",
+   "colors": {
+    "navy": "#101C2C",
+    "teal": "#16A6A0",
+    "gold": "#D9B45B",
+    "paper": "#F3F5F8",
+    "ink": "#101C2C",
+    "muted": "#3A495D",
+    "white": "#FFFFFF",
+    "surface": "#E3E8EF",
+    "card": "#FFFFFF",
+    "tint": "#2616A6A0",
+    "tint2": "#0F101C2C",
+    "onteal": "#FFFFFF",
+    "line": "#33101C2C"
+   }
+  },
+  {
+   "id": "dark",
+   "name": "Dark",
+   "colors": {
+    "navy": "#101C2C",
+    "teal": "#22BDB6",
+    "gold": "#D9B45B",
+    "paper": "#101C2C",
+    "ink": "#F3F5F8",
+    "muted": "#B7C3D3",
+    "white": "#FFFFFF",
+    "surface": "#1B2B40",
+    "card": "#182638",
+    "tint": "#3016A6A0",
+    "tint2": "#14FFFFFF",
+    "onteal": "#101C2C",
+    "line": "#40FFFFFF"
+   }
+  }
+ ],
+ "layers": [
+  {
+   "type": "background",
+   "id": "bg",
+   "kind": "SOLID",
+   "color": "$paper"
+  },
+  {
+   "type": "shape",
+   "id": "orb_a",
+   "shape": "CIRCLE",
+   "color": "$tint",
+   "cornerRadius": 0,
+   "x": 46.0,
+   "y": 34.0,
+   "width": 95.0,
+   "height": 95.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 46.0,
+     "y": 47.2,
+     "width": 95.0,
+     "height": 76.0
     },
-    {
-      "id": "dark",
-      "name": "Dark",
-      "colors": {
-        "navy": "#0B2028",
-        "teal": "#35C4B8",
-        "gold": "#D5B66D",
-        "paper": "#0B2028",
-        "ink": "#F4F7F6",
-        "muted": "#B5C7C8",
-        "white": "#FFFFFF",
-        "surface": "#15343D"
-      }
+    "9:16": {
+     "x": 46.0,
+     "y": 62.875,
+     "width": 95.0,
+     "height": 53.438
+    },
+    "16:9": {
+     "x": 60.0,
+     "y": -25.0,
+     "width": 61.875,
+     "height": 110.0
     }
-  ],
-  "layers": [
-    {
-      "type": "background",
-      "id": "bg",
-      "kind": "SOLID",
-      "color": "$paper"
+   }
+  },
+  {
+   "type": "shape",
+   "id": "orb_b",
+   "shape": "CIRCLE",
+   "color": "$tint2",
+   "cornerRadius": 0,
+   "x": -22.0,
+   "y": 52.0,
+   "width": 50.0,
+   "height": 50.0,
+   "ratioOverrides": {
+    "4:5": {
+     "x": -22.0,
+     "y": 52.0,
+     "width": 50.0,
+     "height": 40.0
     },
-    {
-      "type": "shape",
-      "id": "topbar",
-      "x": 0,
-      "y": 0,
-      "width": 100,
-      "height": 2,
-      "shape": "RECTANGLE",
-      "color": "$teal",
-      "cornerRadius": 0
+    "9:16": {
+     "x": -22.0,
+     "y": 52.0,
+     "width": 50.0,
+     "height": 28.125
     },
-    {
-      "type": "text",
-      "id": "eyebrow",
-      "x": 9,
-      "y": 10,
-      "width": 82,
-      "height": 7,
-      "role": "LABEL",
-      "text": "THE DAILY TIP  /  {date}",
-      "sizeSp": 18,
-      "color": "$teal",
-      "bold": true,
-      "alignment": "START",
-      "maxLines": 2,
-      "autoFit": true,
-      "font": "HEADING"
-    },
-    {
-      "type": "text",
-      "id": "number",
-      "x": 8,
-      "y": 20,
-      "width": 30,
-      "height": 28,
-      "role": "HEADING",
-      "text": "01",
-      "sizeSp": 104,
-      "color": "$gold",
-      "bold": true,
-      "alignment": "START",
-      "maxLines": 2,
-      "autoFit": true,
-      "font": "HEADING"
-    },
-    {
-      "type": "text",
-      "id": "heading",
-      "x": 9,
-      "y": 48,
-      "width": 82,
-      "height": 18,
-      "role": "HEADING",
-      "text": "{headline}",
-      "sizeSp": 48,
-      "color": "$ink",
-      "bold": true,
-      "alignment": "START",
-      "maxLines": 2,
-      "autoFit": true,
-      "font": "HEADING"
-    },
-    {
-      "type": "text",
-      "id": "body",
-      "x": 9,
-      "y": 69,
-      "width": 82,
-      "height": 19,
-      "role": "BODY",
-      "text": "{body}",
-      "sizeSp": 24,
-      "color": "$muted",
-      "bold": false,
-      "alignment": "START",
-      "maxLines": 4,
-      "autoFit": true,
-      "font": "HEADING"
-    },
-    {
-      "type": "text",
-      "id": "footer",
-      "x": 9,
-      "y": 92,
-      "width": 82,
-      "height": 5,
-      "role": "LABEL",
-      "text": "SAVE THIS • SHARE THE KNOWLEDGE",
-      "sizeSp": 15,
-      "color": "$teal",
-      "bold": true,
-      "alignment": "START",
-      "maxLines": 2,
-      "autoFit": true,
-      "font": "HEADING"
+    "16:9": {
+     "x": 80.0,
+     "y": 62.0,
+     "width": 34.875,
+     "height": 62.0
     }
-  ]
+   }
+  },
+  {
+   "type": "shape",
+   "id": "bar",
+   "shape": "ROUNDED_RECTANGLE",
+   "color": "$teal",
+   "cornerRadius": 3,
+   "x": 8.519,
+   "y": 6.644,
+   "width": 16.0,
+   "height": 0.926,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 5.316,
+     "width": 16.0,
+     "height": 0.741
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 11.5,
+     "width": 16.0,
+     "height": 0.521
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 6.644,
+     "width": 9.0,
+     "height": 0.926
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "number",
+   "role": "HEADING",
+   "text": "01",
+   "sizeSp": 76,
+   "color": "$gold",
+   "bold": true,
+   "alignment": "START",
+   "maxLines": 1,
+   "autoFit": true,
+   "font": "HEADING",
+   "x": 8.519,
+   "y": 10.185,
+   "width": 82.963,
+   "height": 18.519,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 11.111,
+     "width": 82.963,
+     "height": 14.815
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 16.667,
+     "width": 82.963,
+     "height": 10.417
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 10.185,
+     "width": 58.0,
+     "height": 18.519
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "eyebrow",
+   "role": "LABEL",
+   "text": "THE DAILY TIP  /  {date}",
+   "sizeSp": 11,
+   "color": "$teal",
+   "bold": true,
+   "alignment": "START",
+   "maxLines": 1,
+   "autoFit": true,
+   "font": "MONO",
+   "x": 8.519,
+   "y": 27.778,
+   "width": 82.963,
+   "height": 4.074,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 26.667,
+     "width": 82.963,
+     "height": 3.259
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 29.167,
+     "width": 82.963,
+     "height": 2.292
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 30.556,
+     "width": 58.0,
+     "height": 4.074
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "heading",
+   "role": "HEADING",
+   "text": "{headline}",
+   "sizeSp": 40,
+   "color": "$ink",
+   "bold": true,
+   "alignment": "START",
+   "maxLines": 4,
+   "autoFit": true,
+   "font": "HEADING",
+   "x": 8.519,
+   "y": 33.333,
+   "width": 82.963,
+   "height": 24.074,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 31.481,
+     "width": 82.963,
+     "height": 25.185
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 32.812,
+     "width": 82.963,
+     "height": 21.875
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 35.648,
+     "width": 58.0,
+     "height": 25.926
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "body",
+   "role": "BODY",
+   "text": "{body}",
+   "sizeSp": 17,
+   "color": "$muted",
+   "bold": false,
+   "alignment": "START",
+   "maxLines": 5,
+   "autoFit": true,
+   "font": "BODY",
+   "x": 8.519,
+   "y": 60.185,
+   "width": 77.985,
+   "height": 17.593,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 61.481,
+     "width": 77.985,
+     "height": 19.259
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 58.333,
+     "width": 77.985,
+     "height": 15.625
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 63.889,
+     "width": 54.52,
+     "height": 18.519
+    }
+   }
+  },
+  {
+   "type": "shape",
+   "id": "rule",
+   "shape": "ROUNDED_RECTANGLE",
+   "color": "$gold",
+   "cornerRadius": 3,
+   "x": 8.519,
+   "y": 81.481,
+   "width": 12.963,
+   "height": 0.556,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 81.481,
+     "width": 12.963,
+     "height": 0.444
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 81.25,
+     "width": 12.963,
+     "height": 0.312
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 83.333,
+     "width": 7.292,
+     "height": 0.556
+    }
+   }
+  },
+  {
+   "type": "text",
+   "id": "footer",
+   "role": "LABEL",
+   "text": "SAVE THIS  •  SHARE THE KNOWLEDGE",
+   "sizeSp": 10,
+   "color": "$teal",
+   "bold": true,
+   "alignment": "START",
+   "maxLines": 1,
+   "autoFit": true,
+   "font": "MONO",
+   "x": 8.519,
+   "y": 83.704,
+   "width": 82.963,
+   "height": 3.704,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 83.259,
+     "width": 82.963,
+     "height": 2.963
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 82.5,
+     "width": 82.963,
+     "height": 2.083
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 85.556,
+     "width": 58.0,
+     "height": 3.704
+    }
+   }
+  },
+  {
+   "type": "contact_line",
+   "id": "contact",
+   "color": "$muted",
+   "sizeSp": 13,
+   "x": 8.519,
+   "y": 91.907,
+   "width": 84.0,
+   "height": 3.333,
+   "ratioOverrides": {
+    "4:5": {
+     "x": 8.519,
+     "y": 93.526,
+     "width": 84.0,
+     "height": 2.667
+    },
+    "9:16": {
+     "x": 8.519,
+     "y": 95.448,
+     "width": 84.0,
+     "height": 1.875
+    },
+    "16:9": {
+     "x": 4.792,
+     "y": 91.907,
+     "width": 50.0,
+     "height": 3.333
+    }
+   }
+  },
+  {
+   "type": "logo_slot",
+   "id": "logo",
+   "placement": "SAFE",
+   "logoType": "ICON"
+  }
+ ]
 }

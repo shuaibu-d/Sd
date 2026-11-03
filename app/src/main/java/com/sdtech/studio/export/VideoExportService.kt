@@ -277,7 +277,7 @@ class VideoExportService : Service() {
         val open = PendingIntent.getActivity(this, 93, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setSmallIcon(com.sdtech.studio.R.drawable.ic_stat_sd)
             .setContentTitle("SD Studio")
             .setContentText(message)
             .setContentIntent(open)
@@ -289,10 +289,13 @@ class VideoExportService : Service() {
     }
 
     private fun startForegroundCompat(notification: Notification) {
-        if (Build.VERSION.SDK_INT >= 35) {
-            ServiceCompat.startForeground(this, NOTIFICATION_ID, notification,
+        when {
+            Build.VERSION.SDK_INT >= 35 -> ServiceCompat.startForeground(this, NOTIFICATION_ID, notification,
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING)
-        } else startForeground(NOTIFICATION_ID, notification)
+            Build.VERSION.SDK_INT >= 29 -> ServiceCompat.startForeground(this, NOTIFICATION_ID, notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            else -> startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     private fun updateNotification(message: String, progress: Int, ongoing: Boolean) {

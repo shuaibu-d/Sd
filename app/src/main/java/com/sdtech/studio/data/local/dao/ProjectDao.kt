@@ -1,8 +1,7 @@
 package com.sdtech.studio.data.local.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
+import androidx.room.Upsert
 import androidx.room.Query
 import com.sdtech.studio.data.local.entity.Project
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +20,7 @@ interface ProjectDao {
     @Query("SELECT COUNT(*) FROM projects")
     suspend fun count(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun save(project: Project)
 
     @Query("DELETE FROM projects WHERE id = :projectId")

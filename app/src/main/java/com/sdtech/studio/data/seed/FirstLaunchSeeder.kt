@@ -1,5 +1,6 @@
 package com.sdtech.studio.data.seed
 
+import android.content.Context
 import androidx.room.withTransaction
 import com.sdtech.studio.data.local.SDStudioDatabase
 import com.sdtech.studio.data.local.entity.BrandKit
@@ -11,10 +12,12 @@ import com.sdtech.studio.data.settings.SettingsRepository
 import kotlinx.coroutines.flow.first
 
 class FirstLaunchSeeder(
+    private val context: Context,
     private val database: SDStudioDatabase,
     private val settings: SettingsRepository
 ) {
     suspend fun seedIfNeeded() {
+        LogoSeeder.seedIfMissing(context, database)
         if (settings.isInitialSeedComplete.first()) return
 
         database.withTransaction {

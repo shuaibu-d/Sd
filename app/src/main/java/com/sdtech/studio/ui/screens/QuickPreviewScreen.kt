@@ -198,19 +198,19 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
                     val bg = original.layers.filterIsInstance<TemplateLayer.Background>().firstOrNull()
                     val withBackground = if (bg == null) original else {
                         val replacement = when (scene.backgroundType) {
-                            SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID, color = brandKit?.palette?.firstOrNull()?.hex ?: "#102B35")
-                            SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT, color = "#102B35", endColor = "#159B98")
+                            SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID, color = brandKit?.palette?.firstOrNull()?.hex ?: "#101C2C")
+                            SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT, color = "#101C2C", endColor = "#16A6A0")
                             SceneBackgroundType.IMAGE, SceneBackgroundType.VIDEO_CLIP -> bg.copy(kind = BackgroundKind.IMAGE, imageAsset = "scene_bg")
                         }
                         original.copy(layers = original.layers.map { if (it.id == bg.id) replacement else it })
                     }
                     val withOverlay = if (scene.backgroundType == SceneBackgroundType.IMAGE || scene.backgroundType == SceneBackgroundType.VIDEO_CLIP) {
-                        val overlay = TemplateLayer.Shape("preview_image_overlay", 0f, 0f, 100f, 100f, ShapeKind.RECTANGLE, "#66071C24")
+                        val overlay = TemplateLayer.Shape("preview_image_overlay", 0f, 0f, 100f, 100f, ShapeKind.RECTANGLE, "#66101C2C")
                         val firstText = withBackground.layers.indexOfFirst { it is TemplateLayer.Text }.let { if (it < 0) withBackground.layers.size else it }
                         withBackground.copy(layers = withBackground.layers.toMutableList().also { it.add(firstText, overlay) })
                     } else withBackground
                     val values = when (scene.type) {
-                        SceneType.OUTRO -> mapOf("headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "cta" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.defaultCta?.takeIf(String::isNotBlank) ?: "FOLLOW FOR MORE" }, "monogram" to (brandKit?.name?.take(2)?.uppercase() ?: "KA"))
+                        SceneType.OUTRO -> mapOf("headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "cta" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.defaultCta?.takeIf(String::isNotBlank) ?: "FOLLOW FOR MORE" }, "monogram" to (brandKit?.name?.take(2)?.uppercase() ?: "SD"))
                         SceneType.INTRO -> mapOf("label" to (brandKit?.name ?: "INTRODUCTION").uppercase(), "keyword" to "", "headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "footer" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.slogan?.takeIf(String::isNotBlank) ?: "Your brand. Your story." })
                         SceneType.CONTENT -> {
                             val words = scene.text.trim().split(Regex("\\s+")).filter(String::isNotBlank)
@@ -227,13 +227,13 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
                         TemplateContent(values = values, images = if (sourceImage != null) mapOf("scene_bg" to sourceImage!!) else emptyMap(), brandLock = false),
                         ratio,
                         theme = withOverlay.themes.firstOrNull(),
-                        options = RenderOptions(logoPlacementMode = LogoPlacementMode.SAFE, showSafeZones = true, brandColors = brandKit?.palette.orEmpty().associate { it.name.lowercase() to it.hex }),
+                        options = RenderOptions(logoPlacementMode = LogoPlacementMode.SAFE, showSafeZones = false, brandColors = brandKit?.palette.orEmpty().associate { it.name.lowercase() to it.hex }),
                         brandKit = brandKit,
                         logos = logos
                     )
                     val profile = RatioProfile.forRatio(ratio)
                     val height = (PREVIEW_WIDTH * profile.height.toFloat() / profile.width).roundToInt()
-                    result[scene.id] = Bitmap.createScaledBitmap(full, PREVIEW_WIDTH, height, true).also { full.recycle() }
+                    result[scene.id] = Bitmap.createScaledBitmap(full, PREVIEW_WIDTH, height, true).also { if (it !== full) full.recycle() }
                 } catch (_: Throwable) {
                     // A bad/missing background asset should not prevent other scenes from rendering.
                 } finally {
@@ -242,10 +242,7 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
             }
             result
         }
-        val old = previewBitmaps
         previewBitmaps = rendered
-        withFrameNanos { }
-        old.values.forEach { if (!it.isRecycled) it.recycle() }
         if (rendered.isEmpty()) renderError = "Scene previews could not be rendered. Check the scene templates and media files."
     }
 
@@ -258,7 +255,6 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
             lifecycleOwner.lifecycle.removeObserver(observer)
             playbackJob?.cancel()
             releasePlayer()
-            latestPreviewBitmaps.value.values.forEach { if (!it.isRecycled) it.recycle() }
         }
     }
 
