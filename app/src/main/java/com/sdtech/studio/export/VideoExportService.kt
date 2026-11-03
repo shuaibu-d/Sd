@@ -289,13 +289,15 @@ class VideoExportService : Service() {
     }
 
     private fun startForegroundCompat(notification: Notification) {
-        when {
-            Build.VERSION.SDK_INT >= 35 -> ServiceCompat.startForeground(this, NOTIFICATION_ID, notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING)
-            Build.VERSION.SDK_INT >= 29 -> ServiceCompat.startForeground(this, NOTIFICATION_ID, notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-            else -> startForeground(NOTIFICATION_ID, notification)
-        }
+    if (Build.VERSION.SDK_INT >= 29) {
+        startForeground(
+            NOTIFICATION_ID,
+            notification,
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        )
+    } else {
+        startForeground(NOTIFICATION_ID, notification)
+    }
     }
 
     private fun updateNotification(message: String, progress: Int, ongoing: Boolean) {
