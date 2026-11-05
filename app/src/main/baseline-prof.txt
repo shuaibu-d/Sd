@@ -1,0 +1,32 @@
+# SD Studio Baseline Profile (Packaged into assets/dexopt/baseline.prof by AGP)
+# Covers cold start, navigation, Template Gallery, Post Editor, and TemplateRenderer hot paths.
+
+HSPLcom/sdtech/studio/SDStudioApplication;-><init>()V
+HSPLcom/sdtech/studio/SDStudioApplication;->onCreate()V
+HSPLcom/sdtech/studio/MainActivity;-><init>()V
+HSPLcom/sdtech/studio/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLcom/sdtech/studio/di/AppContainer;-><init>(Landroid/content/Context;)V
+
+# Performance & Stability Layer hot paths
+HSPLcom/sdtech/studio/performance/CentralBitmapPool;->get(Ljava/lang/String;)Landroid/graphics/Bitmap;
+HSPLcom/sdtech/studio/performance/CentralBitmapPool;->put(Ljava/lang/String;Landroid/graphics/Bitmap;)Landroid/graphics/Bitmap;
+HSPLcom/sdtech/studio/performance/CentralBitmapPool;->getOrPut(Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Landroid/graphics/Bitmap;
+HSPLcom/sdtech/studio/performance/CentralBitmapPool;->decodeFileCached(Ljava/lang/String;I)Landroid/graphics/Bitmap;
+HSPLcom/sdtech/studio/performance/RenderDispatcher;->withRenderContext(Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HSPLcom/sdtech/studio/performance/MemoryGuard;->init(Landroid/content/Context;)V
+HSPLcom/sdtech/studio/performance/ThermalGuard;->init(Landroid/content/Context;)V
+HSPLcom/sdtech/studio/performance/ErrorBoundary;->runGuarded(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+
+# Template loading & rendering hot paths
+HSPLcom/sdtech/studio/render/TemplateRepository;-><init>(Landroid/content/Context;)V
+HSPLcom/sdtech/studio/render/TemplateRepository;->loadAll()Ljava/util/List;
+HSPLcom/sdtech/studio/render/TemplateRepository;->load(Ljava/lang/String;)Lcom/sdtech/studio/render/Template;
+HSPLcom/sdtech/studio/render/TemplateRenderer;-><init>(Landroid/content/Context;)V
+HSPLcom/sdtech/studio/render/TemplateRenderer;->render(Lcom/sdtech/studio/render/Template;Lcom/sdtech/studio/render/TemplateContent;Ljava/lang/String;Lcom/sdtech/studio/render/TemplateTheme;Lcom/sdtech/studio/render/RenderOptions;Lcom/sdtech/studio/data/local/entity/BrandKit;Ljava/util/List;)Landroid/graphics/Bitmap;
+
+# Navigation, Gallery, and Editor UI hot paths
+PLcom/sdtech/studio/ui/navigation/AppNavigationKt/**;
+PLcom/sdtech/studio/ui/screens/HomeScreenKt/**;
+PLcom/sdtech/studio/ui/screens/TemplateGalleryScreenKt/**;
+PLcom/sdtech/studio/ui/screens/TemplateEditorScreenKt/**;
+PLcom/sdtech/studio/ui/editor/EditorViewModel;

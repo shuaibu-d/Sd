@@ -31,6 +31,7 @@ import java.util.Date
 import java.util.Locale
 
 class ImageExportManager(private val context: Context) {
+    private val json = Json { encodeDefaults = true }
     data class Request(val ratios: List<String>, val jpeg: Boolean = false)
     data class Result(val uris: List<Uri>, val caption: String)
 
@@ -49,13 +50,14 @@ class ImageExportManager(private val context: Context) {
             ?: draft.slides.getOrNull(draft.activeSlide)?.values?.entries
                 ?.firstOrNull { it.key.contains("caption", true) || it.key.equals("body", true) }?.value.orEmpty()
         val now = System.currentTimeMillis()
+        val encodedDraft = json.encodeToString(draft)
         app.appContainer.projectRepository.saveProject(
             saved?.copy(
                 title = template.name, ratio = draft.ratio, status = ProjectStatus.DRAFT,
-                payloadJson = Json { encodeDefaults = true }.encodeToString(draft), updatedAt = now
+                payloadJson = encodedDraft, updatedAt = now
             ) ?: Project(
                 id = projectId, type = ProjectType.POST, title = template.name, ratio = draft.ratio,
-                status = ProjectStatus.DRAFT, payloadJson = Json { encodeDefaults = true }.encodeToString(draft),
+                status = ProjectStatus.DRAFT, payloadJson = encodedDraft,
                 createdAt = now, updatedAt = now
             )
         )
@@ -72,18 +74,20 @@ class ImageExportManager(private val context: Context) {
                     val counter = "%02d / %02d".format(slideIndex + 1, slides.size)
                     val layerCounters = template.layers.filterIsInstance<TemplateLayer.Text>()
                         .filter { it.text.contains("{slide_number}") }.associate { it.id to counter }
-                    val content = slide.toTemplateContent(draft.brandLock).let {
+                    val content = slide.toTemplateContent(draft.brandLock, maxEdgePx = 2048).let {
                         it.copy(values = it.values + ("slide_number" to counter) + layerCounters)
                     }
-                    bitmap = TemplateRenderer(context).render(
-                        template, content, ratio,
-                        theme = template.themes.firstOrNull { it.id == if (draft.darkTheme) "dark" else "light" },
-                        options = RenderOptions(
-                            logoPlacementMode = if (draft.logoPlacement == "TIGHT") LogoPlacementMode.TIGHT else LogoPlacementMode.SAFE,
-                            logoTypeOverride = draft.logoVariant,
-                            brandColors = brandKit?.palette.orEmpty().associate { it.name.lowercase() to it.hex }
-                        ), brandKit = brandKit, logos = logos
-                    )
+                    bitmap = com.sdtech.studio.performance.RenderDispatcher.withRenderContext {
+                        TemplateRenderer(context).render(
+                            template, content, ratio,
+                            theme = template.themes.firstOrNull { it.id == if (draft.darkTheme) "dark" else "light" },
+                            options = RenderOptions(
+                                logoPlacementMode = if (draft.logoPlacement == "TIGHT") LogoPlacementMode.TIGHT else LogoPlacementMode.SAFE,
+                                logoTypeOverride = draft.logoVariant,
+                                brandColors = brandKit?.palette.orEmpty().associate { it.name.lowercase() to it.hex }
+                            ), brandKit = brandKit, logos = logos
+                        )
+                    }
                     val extension = if (request.jpeg) "jpg" else "png"
                     val slideSuffix = if (carouselMode) "_slide_${(slideIndex + 1).toString().padStart(2, '0')}" else ""
                     val name = "SDStudio_${safeName(template.name)}_${ratio.replace(':', 'x')}${slideSuffix}_$timestamp.$extension"

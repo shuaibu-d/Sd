@@ -56,51 +56,15 @@ fun VideoExportScreen(projectId: String, onBack: () -> Unit = {}) {
 
     val musicPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            musicUri = uri.toString()
+            val resolved = runCatching {
+                com.sdtech.studio.video.AndroidMediaPersistenceGateway.resolver(context)
+                    .resolve(uri.toString(), "mp3")
+            }.getOrDefault(com.sdtech.studio.video.domain.ResolvedMediaReference(uri.toString(), false))
+            musicUri = resolved.storedUriOrPath
         }
     }
 
-    DisposableEffect(context) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context?, intent: Intent?) {
-                when (intent?.action) {
-                    VideoExportService.ACTION_PROGRESS -> {
-                        progress = intent.getIntExtra(VideoExportService.EXTRA_PROGRESS, 0)
-                        exporting = true
-                        status = "Exporting video…"
-                    }
-                    VideoExportService.ACTION_COMPLETE -> {
-                        exporting = false
-                        progress = 100
-                        savedUri = intent.getStringExtra(VideoExportService.EXTRA_URI)?.let(Uri::parse)
-                        missingVoices = intent.getStringExtra(VideoExportService.EXTRA_MISSING).orEmpty()
-                        status = "Video saved to Movies/SD Studio."
-                    }
-                    VideoExportService.ACTION_ERROR -> {
-                        exporting = false
-                        error = intent.getStringExtra(VideoExportService.EXTRA_ERROR) ?: "Export failed."
-                        canRetry720 = intent.getBooleanExtra(VideoExportService.EXTRA_CAN_RETRY_720P, false)
-                        status = "Export failed."
-                    }
-                    VideoExportService.ACTION_CANCELLED -> {
-                        exporting = false
-                        status = "Export cancelled."
-                    }
-                }
-            }
-        }
-        val filter = IntentFilter().apply {
-            addAction(VideoExportService.ACTION_PROGRESS)
-            addAction(VideoExportService.ACTION_COMPLETE)
-            addAction(VideoExportService.ACTION_ERROR)
-            addAction(VideoExportService.ACTION_CANCELLED)
-        }
-        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        onDispose { runCatching { context.unregisterReceiver(receiver) } }
-    }
+    var showThermalExportWarning by remember { mutableStateOf(false) }
 
     fun startExport(fallback: Boolean = use720p) {
         if (musicEnabled && musicUri.isNullOrBlank()) {
@@ -130,15 +94,85 @@ fun VideoExportScreen(projectId: String, onBack: () -> Unit = {}) {
                     logoPlacementMode = logoMode
                 )
             )
-        }.onFailure {
+        }.onFailure { throwable ->
             exporting = false
-            error = it.message ?: "Could not start the export service."
+            val msg = throwable.message ?: "Could not start the export service."
+            error = msg
+            com.sdtech.studio.performance.ErrorBoundary.report(
+                source = "VideoExportStart:$projectId",
+                throwable = throwable,
+                title = "Video export could not start",
+                message = msg,
+                onRetry = { startExport(fallback) }
+            )
         }
+    }
+
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    VideoExportService.ACTION_PROGRESS -> {
+                        progress = intent.getIntExtra(VideoExportService.EXTRA_PROGRESS, 0)
+                        exporting = true
+                        status = "Exporting video…"
+                    }
+                    VideoExportService.ACTION_COMPLETE -> {
+                        exporting = false
+                        progress = 100
+                        savedUri = intent.getStringExtra(VideoExportService.EXTRA_URI)?.let(Uri::parse)
+                        missingVoices = intent.getStringExtra(VideoExportService.EXTRA_MISSING).orEmpty()
+                        status = "Video saved to Movies/SD Studio."
+                    }
+                    VideoExportService.ACTION_ERROR -> {
+                        exporting = false
+                        val errText = intent.getStringExtra(VideoExportService.EXTRA_ERROR) ?: "Export failed."
+                        error = errText
+                        canRetry720 = intent.getBooleanExtra(VideoExportService.EXTRA_CAN_RETRY_720P, false)
+                        status = "Export failed."
+                        com.sdtech.studio.performance.ErrorBoundary.report(
+                            source = "VideoExport:$projectId",
+                            throwable = IllegalStateException(errText),
+                            title = "Video export failed",
+                            message = errText,
+                            onRetry = {
+                                if (canRetry720 && !use720p) startExport(true) else startExport(use720p)
+                            }
+                        )
+                    }
+                    VideoExportService.ACTION_CANCELLED -> {
+                        exporting = false
+                        status = "Export cancelled."
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(VideoExportService.ACTION_PROGRESS)
+            addAction(VideoExportService.ACTION_COMPLETE)
+            addAction(VideoExportService.ACTION_ERROR)
+            addAction(VideoExportService.ACTION_CANCELLED)
+        }
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
     }
 
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { startExport(pendingFallback) }
+
+    fun requestStartExport(fallback: Boolean = use720p) {
+        pendingFallback = fallback
+        if (com.sdtech.studio.performance.ThermalGuard.shouldWarnBeforeExport) {
+            showThermalExportWarning = true
+        } else if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startExport(fallback)
+        }
+    }
 
     fun cancel() {
         context.startService(Intent(context, VideoExportService::class.java).setAction(VideoExportService.ACTION_CANCEL))
@@ -156,6 +190,16 @@ fun VideoExportScreen(projectId: String, onBack: () -> Unit = {}) {
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (com.sdtech.studio.performance.ThermalGuard.shouldWarnBeforeExport) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Text(
+                        com.sdtech.studio.performance.ThermalGuard.exportThermalWarningMessage(),
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
             Text("Export preset", style = MaterialTheme.typography.titleMedium)
             VideoExportPreset.entries.forEach { option ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -246,18 +290,14 @@ fun VideoExportScreen(projectId: String, onBack: () -> Unit = {}) {
                 OutlinedButton(onClick = ::cancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel export") }
             } else {
                 Button(onClick = {
-                    pendingFallback = use720p
-                    if (Build.VERSION.SDK_INT >= 33 &&
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                    ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    else startExport()
+                    requestStartExport(use720p)
                 }, enabled = !VideoExportService.isExportInProgress(), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(if (VideoExportService.isExportInProgress()) "Another export is running" else if (use720p) "Export at 720p" else "Export video") }
             }
             if (status.isNotBlank()) Text(status, style = MaterialTheme.typography.bodyMedium)
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
                 if (canRetry720 && !use720p) {
-                    Button(onClick = { startExport(true) }, modifier = Modifier.fillMaxWidth()) { Text("Retry at 720p") }
+                    Button(onClick = { requestStartExport(true) }, modifier = Modifier.fillMaxWidth()) { Text("Retry at 720p") }
                 }
             }
             if (missingVoices.isNotBlank() && savedUri != null) {
@@ -285,5 +325,28 @@ fun VideoExportScreen(projectId: String, onBack: () -> Unit = {}) {
                 }
             }
         }
+    }
+
+    if (showThermalExportWarning) {
+        AlertDialog(
+            onDismissRequest = { showThermalExportWarning = false },
+            title = { Text("Phone is warm") },
+            text = { Text(com.sdtech.studio.performance.ThermalGuard.exportThermalWarningMessage()) },
+            confirmButton = {
+                Button(onClick = {
+                    showThermalExportWarning = false
+                    if (Build.VERSION.SDK_INT >= 33 &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        startExport(pendingFallback)
+                    }
+                }) { Text("Export anyway") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showThermalExportWarning = false }) { Text("Wait to cool down") }
+            }
+        )
     }
 }

@@ -30,7 +30,7 @@ import com.sdtech.studio.data.local.entity.Project
         HashtagGroup::class,
         PlannerItem::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(AppTypeConverters::class)
@@ -45,6 +45,46 @@ abstract class SDStudioDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE planner_items ADD COLUMN captionHashtagsAdded INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE planner_items ADD COLUMN callToActionAdded INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE planner_items ADD COLUMN safeZoneChecked INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE projects ADD COLUMN documentVersion INTEGER NOT NULL DEFAULT 1")
+                val cursor = db.query("SELECT id, type, ratio, payloadJson, createdAt, updatedAt FROM projects")
+                val updates = mutableListOf<Triple<String, String, Int>>()
+                cursor.use { c ->
+                    val idIdx = c.getColumnIndexOrThrow("id")
+                    val typeIdx = c.getColumnIndexOrThrow("type")
+                    val ratioIdx = c.getColumnIndexOrThrow("ratio")
+                    val payloadIdx = c.getColumnIndexOrThrow("payloadJson")
+                    val createdIdx = c.getColumnIndexOrThrow("createdAt")
+                    val updatedIdx = c.getColumnIndexOrThrow("updatedAt")
+                    while (c.moveToNext()) {
+                        val id = c.getString(idIdx)
+                        val type = c.getString(typeIdx)
+                        val ratio = c.getString(ratioIdx) ?: "9:16"
+                        val payloadJson = c.getString(payloadIdx) ?: "{}"
+                        val createdAt = c.getLong(createdIdx)
+                        val updatedAt = c.getLong(updatedIdx)
+                        if (type == "VIDEO" && payloadJson.isNotBlank() && payloadJson != "{}") {
+                            val migratedJson = com.sdtech.studio.video.domain.ProjectDocumentMigrator.migrateV1JsonToV2Json(
+                                projectId = id,
+                                canvasRatio = ratio,
+                                payloadJson = payloadJson,
+                                createdAtMs = createdAt,
+                                updatedAtMs = updatedAt
+                            )
+                            updates.add(Triple(id, migratedJson, 2))
+                        }
+                    }
+                }
+                for ((id, migratedJson, docVersion) in updates) {
+                    db.execSQL(
+                        "UPDATE projects SET payloadJson = ?, documentVersion = ? WHERE id = ?",
+                        arrayOf<Any>(migratedJson, docVersion, id)
+                    )
+                }
             }
         }
     }

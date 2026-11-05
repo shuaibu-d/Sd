@@ -68,39 +68,75 @@ object BrandBackupManager {
     }
 
     suspend fun import(context: Context, database: SDStudioDatabase, source: Uri) = withContext(Dispatchers.IO) {
+        // Read and validate the complete archive before touching the current database.
         val entries = linkedMapOf<String, ByteArray>()
+        var totalBytes = 0L
         context.contentResolver.openInputStream(source)?.use { input ->
             ZipInputStream(input).use { zip ->
                 while (true) {
                     val entry = zip.nextEntry ?: break
-                    if (!entry.isDirectory && !entry.name.startsWith("/") && !entry.name.contains("..")) {
-                        entries[entry.name] = zip.readBytes()
+                    if (entry.isDirectory) { zip.closeEntry(); continue }
+                    val name = entry.name.replace('\\', '/')
+                    require(!name.startsWith('/') &&
+                        name.split('/').none { it == ".." || it.isBlank() }) {
+                        "The selected ZIP contains an unsafe file path."
                     }
+                    require(name !in entries) { "The selected ZIP contains duplicate files." }
+                    val limit = if (name == "brand-kit.json") 2L * 1024 * 1024 else 20L * 1024 * 1024
+                    val bytes = zip.readBytes()
+                    require(bytes.size.toLong() <= limit) { "A file in the backup is too large: $name" }
+                    totalBytes += bytes.size
+                    require(totalBytes <= 60L * 1024 * 1024) { "The backup is larger than the 60 MB import limit." }
+                    entries[name] = bytes
                     zip.closeEntry()
                 }
             }
-        } ?: error("Unable to read the selected backup.")
-        val manifest = entries["brand-kit.json"]?.decodeToString() ?: error("This ZIP does not contain a Brand Kit backup.")
-        val backup = json.decodeFromString<BrandBackup>(manifest)
-        database.withTransaction {
-            database.captionTemplateDao().deleteAll()
-            database.hashtagGroupDao().deleteAll()
-            LogoType.entries.forEach { database.logoAssetDao().deleteByType(it) }
-            backup.brand?.let { database.brandKitDao().save(BrandKit(
-                name = it.name, slogan = it.slogan, palette = it.palette, website = it.website,
-                whatsapp = it.whatsapp, handle = it.handle, defaultCta = it.defaultCta, brandLock = it.brandLock
-            )) }
-            backup.captions.forEach { database.captionTemplateDao().save(CaptionTemplate(it.id, it.title, it.body, StudioDivision.valueOf(it.division))) }
-            backup.hashtags.forEach { database.hashtagGroupDao().save(HashtagGroup(it.id, it.name, it.tags, StudioDivision.valueOf(it.division))) }
-            val folder = File(context.filesDir, "brand/logos").apply { mkdirs() }
-            backup.logos.forEach { logo ->
-                val bytes = entries[logo.entry] ?: return@forEach
-                val type = LogoType.valueOf(logo.type)
-                val file = File(folder, "${type.name.lowercase()}.png")
-                file.writeBytes(bytes)
-                database.logoAssetDao().deleteByType(type)
-                database.logoAssetDao().insert(LogoAsset(type = type, filePath = file.absolutePath, width = logo.width, height = logo.height))
+        } ?: error("Unable to open the selected file. Choose a valid SD Studio backup ZIP.")
+
+        val manifestBytes = entries["brand-kit.json"]
+            ?: error("This file is not an SD Studio Brand Kit backup: brand-kit.json is missing.")
+        val backup = runCatching { json.decodeFromString<BrandBackup>(manifestBytes.decodeToString()) }
+            .getOrElse { throw IllegalArgumentException("The backup manifest is invalid or damaged: ${it.message}") }
+
+        // Validate enum values and referenced logo files before deleting or replacing anything.
+        backup.captions.forEach { require(runCatching { StudioDivision.valueOf(it.division) }.isSuccess) { "Unknown caption division: ${it.division}" } }
+        backup.hashtags.forEach { require(runCatching { StudioDivision.valueOf(it.division) }.isSuccess) { "Unknown hashtag division: ${it.division}" } }
+        backup.logos.forEach { logo ->
+            require(runCatching { LogoType.valueOf(logo.type) }.isSuccess) { "Unknown logo type: ${logo.type}" }
+            require(logo.width > 0 && logo.height > 0) { "Invalid dimensions for logo ${logo.entry}." }
+            require(logo.entry.startsWith("logos/") && entries[logo.entry] != null) { "A logo image is missing from the backup: ${logo.entry}" }
+        }
+
+        val logoFolder = File(context.filesDir, "brand/logos").apply { mkdirs() }
+        val staged = backup.logos.map { logo ->
+            val type = LogoType.valueOf(logo.type)
+            val bytes = entries.getValue(logo.entry)
+            val temp = File(logoFolder, "${type.name.lowercase()}_${java.util.UUID.randomUUID()}.tmp")
+            temp.writeBytes(bytes)
+            Triple(logo, type, temp)
+        }
+
+        try {
+            database.withTransaction {
+                database.captionTemplateDao().deleteAll()
+                database.hashtagGroupDao().deleteAll()
+                LogoType.entries.forEach { database.logoAssetDao().deleteByType(it) }
+                backup.brand?.let { database.brandKitDao().save(BrandKit(
+                    name = it.name, slogan = it.slogan, palette = it.palette, website = it.website,
+                    whatsapp = it.whatsapp, handle = it.handle, defaultCta = it.defaultCta, brandLock = it.brandLock
+                )) }
+                backup.captions.forEach { database.captionTemplateDao().save(CaptionTemplate(it.id, it.title, it.body, StudioDivision.valueOf(it.division))) }
+                backup.hashtags.forEach { database.hashtagGroupDao().save(HashtagGroup(it.id, it.name, it.tags, StudioDivision.valueOf(it.division))) }
+                staged.groupBy { it.second }.forEach { (type, assets) ->
+                    assets.forEachIndexed { index, (logo, _, temp) ->
+                        val target = File(logoFolder, "${type.name.lowercase()}_${index}_${System.currentTimeMillis()}.png")
+                        check(temp.renameTo(target)) { "Could not install logo image ${logo.entry}." }
+                        database.logoAssetDao().insert(LogoAsset(type = type, filePath = target.absolutePath, width = logo.width, height = logo.height))
+                    }
+                }
             }
+        } finally {
+            staged.forEach { it.third.delete() }
         }
     }
 }

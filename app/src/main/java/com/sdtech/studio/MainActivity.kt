@@ -7,9 +7,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.DisposableEffect
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -20,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sdtech.studio.performance.ErrorBoundary
+import com.sdtech.studio.performance.RecoverableErrorEvent
 import com.sdtech.studio.ui.navigation.AppNavigation
 import com.sdtech.studio.ui.theme.SDStudioTheme
 
@@ -42,6 +47,7 @@ class MainActivity : ComponentActivity() {
             val settings by app.appContainer.settingsRepository.settings.collectAsState(
                 initial = com.sdtech.studio.data.model.AppSettings()
             )
+            val recoverableError by ErrorBoundary.currentError.collectAsState()
             val dark = when (settings.themeMode) {
                 com.sdtech.studio.data.model.AppSettings.THEME_DARK -> true
                 com.sdtech.studio.data.model.AppSettings.THEME_LIGHT -> false
@@ -57,9 +63,56 @@ class MainActivity : ComponentActivity() {
             SDStudioTheme(darkTheme = dark) {
                 AppNavigation()
                 if (!previousCrash.isNullOrBlank()) CrashReportDialog(crashReport = previousCrash)
+                recoverableError?.let { event ->
+                    ErrorBoundaryDialog(event = event)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ErrorBoundaryDialog(event: RecoverableErrorEvent) {
+    AlertDialog(
+        onDismissRequest = { ErrorBoundary.dismiss() },
+        title = { Text("Could not complete ${event.operationName}") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = event.userMessage,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Details have been recorded to the local crash log.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            if (event.onRetry != null) {
+                Button(onClick = { ErrorBoundary.retryAndDismiss() }) {
+                    Text("Retry")
+                }
+            } else {
+                Button(onClick = { ErrorBoundary.dismiss() }) {
+                    Text("OK")
+                }
+            }
+        },
+        dismissButton = {
+            if (event.onRetry != null) {
+                TextButton(onClick = { ErrorBoundary.dismiss() }) {
+                    Text("Dismiss")
+                }
+            }
+        }
+    )
 }
 
 @Composable

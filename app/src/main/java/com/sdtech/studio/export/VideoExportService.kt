@@ -1,4 +1,4 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+@file:Suppress("UnsafeOptInUsageError")
 
 package com.sdtech.studio.export
 
@@ -240,6 +240,7 @@ class VideoExportService : Service() {
     }
 
     private fun fail(error: Throwable) {
+        com.sdtech.studio.CrashLogger.recordHandledException(applicationContext, "VideoExportService", error)
         prepared?.let { export ->
             export.tempFiles.forEach { it.delete() }
             export.outputFile.delete()

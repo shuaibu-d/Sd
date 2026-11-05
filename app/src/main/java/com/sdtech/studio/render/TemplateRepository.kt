@@ -21,7 +21,16 @@ class TemplateRepository(context: Context) {
             }
 
     fun loadAll(): List<Template> = synchronized(CACHE) {
-        CACHE.posts ?: loadFolder("templates").also { CACHE.posts = it }
+        // Never permanently cache an empty result: a transient asset/decoder failure must
+        // not leave the gallery blank for the lifetime of the process.
+        val cached = CACHE.posts
+        if (!cached.isNullOrEmpty()) cached
+        else loadFolder("templates").also { CACHE.posts = it }
+    }
+
+    fun invalidate() = synchronized(CACHE) {
+        CACHE.posts = null
+        CACHE.scenes = null
     }
 
     fun load(id: String): Template? = loadAll().firstOrNull { it.id == id }

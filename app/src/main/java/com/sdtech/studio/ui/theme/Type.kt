@@ -8,7 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.sdtech.studio.R
 
-private val SpaceGrotesk = FontFamily(
+val SpaceGrotesk = FontFamily(
     Font(R.font.space_grotesk_light, FontWeight.Light),
     Font(R.font.space_grotesk_regular, FontWeight.Normal),
     Font(R.font.space_grotesk_medium, FontWeight.Medium),
@@ -16,7 +16,7 @@ private val SpaceGrotesk = FontFamily(
     Font(R.font.space_grotesk_bold, FontWeight.Bold)
 )
 
-private val Inter = FontFamily(
+val Inter = FontFamily(
     Font(R.font.inter_thin, FontWeight.Thin),
     Font(R.font.inter_extralight, FontWeight.ExtraLight),
     Font(R.font.inter_light, FontWeight.Light),
@@ -28,7 +28,7 @@ private val Inter = FontFamily(
     Font(R.font.inter_black, FontWeight.Black)
 )
 
-private val JetBrainsMono = FontFamily(
+val JetBrainsMono = FontFamily(
     Font(R.font.jetbrains_mono_thin, FontWeight.Thin),
     Font(R.font.jetbrains_mono_extralight, FontWeight.ExtraLight),
     Font(R.font.jetbrains_mono_light, FontWeight.Light),

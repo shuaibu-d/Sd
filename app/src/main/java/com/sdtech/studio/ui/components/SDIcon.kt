@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -25,8 +27,21 @@ enum class SDIconKind {
 
 /** Hand-drawn 24-unit icon set (no extra libraries needed). */
 @Composable
-fun SDIcon(kind: SDIconKind, modifier: Modifier = Modifier, tint: Color = LocalContentColor.current, size: Dp = 24.dp) {
-    Canvas(modifier.size(size)) { drawIcon(kind, tint, this.size.minDimension / 24f) }
+fun SDIcon(
+    kind: SDIconKind,
+    modifier: Modifier = Modifier,
+    tint: Color = LocalContentColor.current,
+    size: Dp = 24.dp,
+    contentDescription: String? = null
+) {
+    val a11yModifier = if (contentDescription != null) {
+        modifier.semantics {
+            this.contentDescription = contentDescription
+        }
+    } else {
+        modifier
+    }
+    Canvas(a11yModifier.size(size)) { drawIcon(kind, tint, this.size.minDimension / 24f) }
 }
 
 private fun DrawScope.drawIcon(kind: SDIconKind, c: Color, s: Float) {

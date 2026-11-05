@@ -77,7 +77,7 @@ internal object EbuR128Loudness {
     }
 
     fun applyGain(input: FloatArray, gainDb: Double): FloatArray {
-        val multiplier = pow10(gainDb)
+        val multiplier = pow10(gainDb / 20.0)
         return FloatArray(input.size) { i -> (input[i].toDouble() * multiplier).coerceIn(-1.0, 1.0).toFloat() }
     }
 

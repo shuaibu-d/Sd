@@ -146,15 +146,17 @@ data class RatioProfile(
 data class LogoPlacement(val x: Float, val y: Float, val width: Float, val height: Float)
 
 object LogoPlacementRules {
-    fun forRatio(ratio: String, mode: LogoPlacementMode, logoAspectRatio: Float = 1f): LogoPlacement {
-        val (widthPct, rightPct, topPct) = when (ratio) {
+    fun forRatio(ratio: String, mode: LogoPlacementMode, logoAspectRatio: Float = 1f): LogoPlacement =
+        forProfile(RatioProfile.forRatio(ratio), mode, logoAspectRatio)
+
+    fun forProfile(profile: RatioProfile, mode: LogoPlacementMode, logoAspectRatio: Float = 1f): LogoPlacement {
+        val (widthPct, rightPct, topPct) = when (profile.ratio) {
             "9:16" -> Triple(14f, 6f, if (mode == LogoPlacementMode.SAFE) 13f else 4f)
             "4:5" -> Triple(16f, 4f, 4f)
             "1:1" -> Triple(15f, 4f, 4f)
             "16:9" -> Triple(11f, 3f, if (mode == LogoPlacementMode.SAFE) 4f else 3f)
-            else -> throw IllegalArgumentException("Unsupported logo ratio: $ratio")
+            else -> throw IllegalArgumentException("Unsupported logo ratio: ${profile.ratio}")
         }
-        val profile = RatioProfile.forRatio(ratio)
         val w = profile.width * widthPct / 100f
         val h = if (logoAspectRatio > 0f) w / logoAspectRatio else w
         return LogoPlacement(profile.width * (100f - rightPct) / 100f - w,
@@ -180,5 +182,6 @@ data class RenderOptions(
     val logoPlacementMode: LogoPlacementMode? = null,
     val backgroundColor: Int? = null,
     val logoTypeOverride: String? = null,
-    val brandColors: Map<String, String> = emptyMap()
+    val brandColors: Map<String, String> = emptyMap(),
+    val maxDimension: Int? = null
 )

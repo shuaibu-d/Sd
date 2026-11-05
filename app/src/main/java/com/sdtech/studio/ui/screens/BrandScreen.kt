@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -89,10 +90,24 @@ fun BrandScreen() {
         }
     }
     val backupExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        if (uri != null) scope.launch { busy = true; runCatching { BrandBackupManager.export(context, container.database, uri) }.onFailure { message = it.message }; busy = false }
+        if (uri != null) scope.launch {
+            busy = true
+            message = null
+            runCatching { BrandBackupManager.export(context, container.database, uri) }
+                .onSuccess { message = "Brand Kit backup exported successfully." }
+                .onFailure { message = "Export failed: ${it.message ?: it.javaClass.simpleName}" }
+            busy = false
+        }
     }
     val backupImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) scope.launch { busy = true; runCatching { BrandBackupManager.import(context, container.database, uri) }.onFailure { message = it.message }; busy = false }
+        if (uri != null) scope.launch {
+            busy = true
+            message = null
+            runCatching { BrandBackupManager.import(context, container.database, uri) }
+                .onSuccess { message = "Brand Kit imported successfully." }
+                .onFailure { message = "Import failed: ${it.message ?: it.javaClass.simpleName}" }
+            busy = false
+        }
     }
 
     ScreenScaffold {
@@ -159,7 +174,7 @@ fun BrandScreen() {
         SectionHeader(title = "Backup", subtitle = "Export or restore your brand settings and logo PNGs.")
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = { backupExporter.launch("SD-Studio-Brand-Kit.zip") }, modifier = Modifier.weight(1f)) { Text("Export ZIP") }
-            OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/zip", "application/octet-stream")) }, modifier = Modifier.weight(1f)) { Text("Import ZIP") }
+            OutlinedButton(onClick = { backupImporter.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) { Text("Import ZIP") }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     }
@@ -195,7 +210,7 @@ fun BrandScreen() {
 
     if (paletteIndex >= 0) {
         AlertDialog(onDismissRequest = { paletteIndex = -1 }, title = { Text("Edit colour") },
-            text = { OutlinedTextField(value = paletteHex, onValueChange = { paletteHex = it }, label = { Text("Hex colour") }, singleLine = true) },
+            text = { StudioTextEntry(paletteHex, { paletteHex = it }, "Hex colour") },
             confirmButton = { TextButton(onClick = {
                 if (paletteHex.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
                     val updated = palette.toMutableList(); updated[paletteIndex] = updated[paletteIndex].copy(hex = paletteHex.uppercase())
@@ -219,22 +234,19 @@ private fun LogoTile(path: String?, tile: Color, label: String, modifier: Modifi
         Box(Modifier.fillMaxWidth().height(112.dp).clip(RoundedCornerShape(14.dp)).background(tile), contentAlignment = Alignment.Center) {
             if (path != null && File(path).exists()) {
                 var bitmap by remember(path) { mutableStateOf<Bitmap?>(null) }
-                LaunchedEffect(path) { bitmap = withContext(Dispatchers.IO) { BitmapFactoryCompat.load(path) } }
-                bitmap?.let { androidx.compose.foundation.Image(it.asImageBitmap(), contentDescription = "$label logo preview", modifier = Modifier.fillMaxSize().padding(16.dp)) }
+                LaunchedEffect(path) {
+                    bitmap = com.sdtech.studio.performance.RenderDispatcher.withRenderContext {
+                        com.sdtech.studio.performance.CentralBitmapPool.decodeFileCached(path, maxEdgePx = 512)
+                    }
+                }
+                val shown = bitmap
+                if (shown != null && !shown.isRecycled) {
+                    androidx.compose.foundation.Image(shown.asImageBitmap(), contentDescription = "$label logo preview", modifier = Modifier.fillMaxSize().padding(16.dp))
+                }
             } else Text("No logo", color = if (tile == Color.White) Color.DarkGray else Color.White)
         }
         Text(label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp))
     }
-}
-
-private object BitmapFactoryCompat {
-    fun load(path: String): Bitmap? = runCatching {
-        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        android.graphics.BitmapFactory.decodeFile(path, bounds)
-        var sample = 1
-        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > 512) sample *= 2
-        android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
-    }.getOrNull()
 }
 
 @Composable
@@ -259,12 +271,24 @@ private fun LogoPrepDialog(bitmap: Bitmap, tolerance: Float, onTolerance: (Float
 
 @Composable
 private fun CheckerboardPreview(bitmap: Bitmap) {
+    val checkerPath = remember { androidx.compose.ui.graphics.Path() }
+    val checkerColor = Color(0xFFBFC5CE)
     Box(Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFE7E9ED)), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
+            checkerPath.reset()
             val cell = 16.dp.toPx()
-            for (y in 0..(size.height / cell).toInt()) for (x in 0..(size.width / cell).toInt()) {
-                if ((x + y) % 2 == 0) drawRect(Color(0xFFBFC5CE), androidx.compose.ui.geometry.Offset(x * cell, y * cell), androidx.compose.ui.geometry.Size(cell, cell))
+            val rows = (size.height / cell).toInt()
+            val cols = (size.width / cell).toInt()
+            for (y in 0..rows) {
+                for (x in 0..cols) {
+                    if ((x + y) % 2 == 0) {
+                        val left = x * cell
+                        val top = y * cell
+                        checkerPath.addRect(androidx.compose.ui.geometry.Rect(left, top, left + cell, top + cell))
+                    }
+                }
             }
+            drawPath(checkerPath, checkerColor)
         }
         androidx.compose.foundation.Image(bitmap.asImageBitmap(), contentDescription = "Logo preview on a transparency checkerboard", modifier = Modifier.fillMaxSize().padding(10.dp))
     }
@@ -276,10 +300,10 @@ private fun ContactDialog(brand: BrandKit, onDismiss: () -> Unit, onSave: (Brand
     var handle by remember { mutableStateOf(brand.handle) }; var cta by remember { mutableStateOf(brand.defaultCta) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Brand contact details") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            OutlinedTextField(website, { website = it }, label = { Text("Website") }, singleLine = true)
-            OutlinedTextField(whatsapp, { whatsapp = it }, label = { Text("WhatsApp number") }, singleLine = true)
-            OutlinedTextField(handle, { handle = it }, label = { Text("Social handle") }, singleLine = true)
-            OutlinedTextField(cta, { cta = it }, label = { Text("Default call-to-action") })
+            StudioTextEntry(website, { website = it }, "Website")
+            StudioTextEntry(whatsapp, { whatsapp = it }, "WhatsApp number")
+            StudioTextEntry(handle, { handle = it }, "Social handle")
+            StudioTextEntry(cta, { cta = it }, "Default call-to-action")
         }
     }, confirmButton = { TextButton(onClick = { onSave(brand.copy(website = website, whatsapp = whatsapp, handle = handle, defaultCta = cta)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
@@ -289,8 +313,8 @@ private fun CaptionDialog(item: CaptionTemplate, onDismiss: () -> Unit, onSave: 
     var title by remember(item.id) { mutableStateOf(item.title) }; var body by remember(item.id) { mutableStateOf(item.body) }; var division by remember(item.id) { mutableStateOf(item.division) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(if (item.id == 0L) "Add caption" else "Edit caption") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            OutlinedTextField(title, { title = it }, label = { Text("Title") })
-            OutlinedTextField(body, { body = it }, label = { Text("Caption") }, minLines = 3)
+            StudioTextEntry(title, { title = it }, "Title")
+            StudioTextEntry(body, { body = it }, "Caption", minLines = 3)
             DivisionPicker(division) { division = it }
         }
     }, confirmButton = { TextButton(enabled = title.isNotBlank() && body.isNotBlank(), onClick = { onSave(item.copy(title = title.trim(), body = body.trim(), division = division)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
@@ -301,8 +325,8 @@ private fun HashtagDialog(item: HashtagGroup, onDismiss: () -> Unit, onSave: (Ha
     var name by remember(item.id) { mutableStateOf(item.name) }; var tags by remember(item.id) { mutableStateOf(item.tags.joinToString(" ")) }; var division by remember(item.id) { mutableStateOf(item.division) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(if (item.id == 0L) "Add hashtag group" else "Edit hashtag group") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            OutlinedTextField(name, { name = it }, label = { Text("Group name") })
-            OutlinedTextField(tags, { tags = it }, label = { Text("Hashtags, separated by spaces") }, minLines = 3)
+            StudioTextEntry(name, { name = it }, "Group name")
+            StudioTextEntry(tags, { tags = it }, "Hashtags, separated by spaces", minLines = 3)
             DivisionPicker(division) { division = it }
         }
     }, confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { onSave(item.copy(name = name.trim(), tags = tags.split(Regex("\\s+")).filter { it.isNotBlank() }.map { if (it.startsWith("#")) it else "#$it" }, division = division)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
@@ -344,4 +368,26 @@ private fun logoSlotLabel(type: LogoType): String = when (type) {
     LogoType.ICON -> "Icon / monogram"
     LogoType.LIGHT -> "For light backgrounds"
     LogoType.DARK -> "For dark backgrounds"
+}
+
+
+@Composable
+private fun StudioTextEntry(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    minLines: Int = 1
+) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            minLines = minLines,
+            maxLines = if (minLines > 1) 6 else 1
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
 }

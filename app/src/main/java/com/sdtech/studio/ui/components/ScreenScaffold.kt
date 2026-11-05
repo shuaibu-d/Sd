@@ -1,5 +1,6 @@
 package com.sdtech.studio.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -35,7 +36,7 @@ fun ScreenScaffold(
     val scrollModifier = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
     if (onBack != null) {
         Column(modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-            Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { SDIcon(SDIconKind.Back, tint = MaterialTheme.colorScheme.onBackground) }
                 Text(title.orEmpty(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
             }
@@ -44,7 +45,7 @@ fun ScreenScaffold(
     } else {
         val inset = if (statusBarPadding) Modifier.statusBarsPadding() else Modifier
         Column(
-            modifier = modifier.fillMaxSize().then(inset).then(scrollModifier).padding(horizontal = 20.dp, vertical = 16.dp),
+            modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).then(inset).then(scrollModifier).padding(horizontal = 18.dp, vertical = 16.dp),
             content = content
         )
     }

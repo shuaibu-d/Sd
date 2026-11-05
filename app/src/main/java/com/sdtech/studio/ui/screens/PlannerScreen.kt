@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -173,17 +174,21 @@ private fun PlannerItemDialog(item: PlannerItem?, projects: List<Project>, onDis
     val time = reminderMillis?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalTime() }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(if (item == null) "New planner item" else "Edit planner item") }, text = {
         Column(Modifier.heightIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(title, { title = it }, label = { Text("Post title") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("POST TITLE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                BasicTextField(title, { title = it }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface), singleLine = true)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
             ExposedDropdownMenuBox(expanded = platformMenu, onExpandedChange = { platformMenu = it }) {
-                OutlinedTextField(platform, {}, readOnly = true, label = { Text("Platform") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(platformMenu) }, modifier = Modifier.menuAnchor().fillMaxWidth())
+                TextButton(onClick = { platformMenu = true }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()) { Text("Platform     $platform     ⌄") }
                 ExposedDropdownMenu(expanded = platformMenu, onDismissRequest = { platformMenu = false }) { platforms.forEach { DropdownMenuItem(text = { Text(it) }, onClick = { platform = it; platformMenu = false }) } }
             }
             ExposedDropdownMenuBox(expanded = statusMenu, onExpandedChange = { statusMenu = it }) {
-                OutlinedTextField(status.name, {}, readOnly = true, label = { Text("Status") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(statusMenu) }, modifier = Modifier.menuAnchor().fillMaxWidth())
+                TextButton(onClick = { statusMenu = true }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()) { Text("Status     ${status.name.lowercase().replaceFirstChar(Char::uppercase)}     ⌄") }
                 ExposedDropdownMenu(expanded = statusMenu, onDismissRequest = { statusMenu = false }) { PlannerStatus.entries.forEach { DropdownMenuItem(text = { Text(it.name.lowercase().replaceFirstChar(Char::uppercase)) }, onClick = { status = it; statusMenu = false }) } }
             }
             ExposedDropdownMenuBox(expanded = projectMenu, onExpandedChange = { projectMenu = it }) {
-                OutlinedTextField(projects.firstOrNull { it.id == projectId }?.title ?: "No linked project", {}, readOnly = true, label = { Text("Link project (optional)") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(projectMenu) }, modifier = Modifier.menuAnchor().fillMaxWidth())
+                TextButton(onClick = { projectMenu = true }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()) { Text("Project     ${projects.firstOrNull { it.id == projectId }?.title ?: "No linked project"}     ⌄") }
                 ExposedDropdownMenu(expanded = projectMenu, onDismissRequest = { projectMenu = false }) {
                     DropdownMenuItem(text = { Text("No linked project") }, onClick = { projectId = null; projectMenu = false })
                     projects.forEach { project -> DropdownMenuItem(text = { Text(project.title) }, onClick = { projectId = project.id; projectMenu = false }) }

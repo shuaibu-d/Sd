@@ -1,6 +1,10 @@
 package com.sdtech.studio.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -67,23 +71,44 @@ fun AppNavigation() {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBar) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-                    tabs.forEach { tab ->
-                        val selected = route == tab.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { if (!selected) navController.openTab(tab.route) },
-                            icon = { SDIcon(tab.icon) },
-                            label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
-                            alwaysShowLabel = true,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.material3.HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    )
+                    NavigationBar(
+                        modifier = Modifier.height(70.dp),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0)
+                    ) {
+                        tabs.forEach { tab ->
+                            val selected = route == tab.route
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = { if (!selected) navController.openTab(tab.route) },
+                                icon = {
+                                    androidx.compose.foundation.layout.Box(
+                                        modifier = Modifier
+                                            .background(
+                                                if (selected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
+                                                RoundedCornerShape(14.dp)
+                                            )
+                                            .padding(horizontal = 13.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) { SDIcon(tab.icon, contentDescription = tab.label, tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                },
+                                label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
+                                alwaysShowLabel = true,
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -141,7 +166,8 @@ fun AppNavigation() {
                     projectIdArg = entry.arguments?.getString("projectId"),
                     onBack = { navController.popBackStack() },
                     onOpenVoiceOver = { id -> navController.navigate("voice-over/$id") },
-                    onOpenPreview = { id -> navController.navigate("quick-preview/$id") }
+                    onOpenPreview = { id -> navController.navigate("quick-preview/$id") },
+                    onExport = { id -> navController.navigate("video-export/$id") }
                 )
             }
             composable("quick-preview/{projectId}") { entry ->

@@ -17,5 +17,6 @@ data class Project(
     val createdAt: Long,
     val updatedAt: Long,
     val thumbnailPath: String? = null,
-    val caption: String = ""
+    val caption: String = "",
+    val documentVersion: Int = 2
 )

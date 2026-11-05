@@ -1,11 +1,10 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+@file:Suppress("UnsafeOptInUsageError")
 
 package com.sdtech.studio.export
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import android.graphics.RectF
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -30,6 +29,7 @@ import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import androidx.media3.transformer.Transformer
+import com.sdtech.studio.audio.EbuR128NormalizationAudioProcessor
 import com.sdtech.studio.data.local.entity.ExportRecord
 import com.sdtech.studio.data.local.entity.Project
 import com.sdtech.studio.data.model.ProjectType
@@ -37,6 +37,7 @@ import com.sdtech.studio.data.repository.ExportRepository
 import com.sdtech.studio.data.repository.ProjectRepository
 import com.sdtech.studio.data.local.entity.BrandKit
 import com.sdtech.studio.data.local.entity.LogoAsset
+import com.sdtech.studio.media.Media3FrameExtractor
 import com.sdtech.studio.render.*
 import com.sdtech.studio.video.*
 import kotlinx.coroutines.flow.first
@@ -88,7 +89,11 @@ class VideoExportPreparer(private val context: Context) {
         val project = runBlocking { container.projectRepository.getProject(request.projectId) }
             ?: error("The video project could not be found.")
         require(project.type == ProjectType.VIDEO) { "This project is not a video project." }
-        val payload = json.decodeFromString<VideoProjectPayload>(project.payloadJson)
+        val payload = com.sdtech.studio.video.domain.ProjectDocumentMigrator.decodeAsLegacyPayload(
+            projectId = project.id,
+            canvasRatio = project.ratio,
+            payloadJson = project.payloadJson
+        )
         require(payload.scenes.isNotEmpty()) { "Add at least one scene before exporting." }
         require(payload.scenes.none { it.backgroundType == SceneBackgroundType.VIDEO_CLIP && it.backgroundUri.isNullOrBlank() }) {
             "A scene is set to Video Clip but has no selected clip. Choose the clip or change its background type."
@@ -142,6 +147,7 @@ class VideoExportPreparer(private val context: Context) {
         } == true
         // Media3 1.11.1 requires this flag when the audio sequence starts with a gap.
         if (anyVoiceFile && !firstSceneHasVoice) {
+            @Suppress("DEPRECATION")
             audioSequence.experimentalSetForceAudioTrack(true)
         }
         var audioCursor = 0L
@@ -243,7 +249,16 @@ class VideoExportPreparer(private val context: Context) {
                                 .setEndPositionMs(clipDuration)
                                 .build()
                         ).build()
-                    audioSequence.addItem(EditedMediaItem.Builder(audioItem).build())
+                    val loudnessProcessor = EbuR128NormalizationAudioProcessor(
+                        targetLufs = EbuR128NormalizationAudioProcessor.DEFAULT_TARGET_LUFS,
+                        truePeakCeilingDbtp = EbuR128NormalizationAudioProcessor.DEFAULT_TRUE_PEAK_CEILING_DBTP,
+                        precomputedGainDb = scene.normalizationGainDb
+                    )
+                    audioSequence.addItem(
+                        EditedMediaItem.Builder(audioItem)
+                            .setEffects(Effects(listOf(loudnessProcessor), emptyList()))
+                            .build()
+                    )
                     audioCursor += clipDuration
                     if (audioCursor < indexStart(durations, index) + duration) {
                         audioSequence.addGap((indexStart(durations, index) + duration - audioCursor) * 1_000L)
@@ -369,14 +384,10 @@ class VideoExportPreparer(private val context: Context) {
     }
 
     private fun readAudioDurationMs(uri: Uri): Long {
-        val retriever = MediaMetadataRetriever()
         return try {
-            retriever.setDataSource(context, uri)
-            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            Media3FrameExtractor.readDurationMsBlocking(context, uri)
         } catch (error: Throwable) {
             throw IllegalArgumentException("Cannot read the selected music file. Choose a supported audio file and try again.", error)
-        } finally {
-            runCatching { retriever.release() }
         }
     }
 
@@ -417,16 +428,12 @@ class VideoExportPreparer(private val context: Context) {
     }
 
     private fun readVideoDurationMs(uri: Uri): Long {
-        val retriever = MediaMetadataRetriever()
         return try {
-            retriever.setDataSource(context, uri)
-            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-                ?.takeIf { it > 0L }
+            Media3FrameExtractor.readDurationMsBlocking(context, uri)
+                .takeIf { it > 0L }
                 ?: error("Could not read the duration of video clip $uri.")
         } catch (error: Throwable) {
             throw IllegalArgumentException("Cannot read the selected video clip. Re-select it and check file access.", error)
-        } finally {
-            runCatching { retriever.release() }
         }
     }
 

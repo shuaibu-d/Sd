@@ -1,9 +1,6 @@
 package com.sdtech.studio.ui.editor
 
 import android.app.Application
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.util.LruCache
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -174,22 +171,19 @@ class EditorViewModel(application: Application, private val templateId: String) 
     }
 }
 
-private object EditorImageCache {
-    private val cache = object : LruCache<String, Bitmap>(24 * 1024) {
-        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
-    }
-
-    fun get(path: String): Bitmap? = cache.get(path) ?: runCatching {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(path, bounds)
-        var sample = 1
-        while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
-        val bitmap = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
-        bitmap?.also { cache.put(path, it) }
-    }.getOrNull()
-}
-
-fun EditorSlide.toTemplateContent(brandLock: Boolean = true): TemplateContent {
-    val bitmaps = imagePaths.mapNotNull { (slot, path) -> EditorImageCache.get(path)?.let { slot to it } }.toMap()
-    return TemplateContent(values = values, images = bitmaps, imageFits = imageFits.mapValues { if (it.value == "FIT") ImageFit.FIT else ImageFit.CROP }, imageOverlays = imageOverlays, textPresets = textPresets, brandLock = brandLock)
+fun EditorSlide.toTemplateContent(
+    brandLock: Boolean = true,
+    maxEdgePx: Int = com.sdtech.studio.performance.ThermalGuard.effectiveEditorMaxEdgePx
+): TemplateContent {
+    val bitmaps = imagePaths.mapNotNull { (slot, path) ->
+        com.sdtech.studio.performance.CentralBitmapPool.decodeFileCached(path, maxEdgePx = maxEdgePx)?.let { slot to it }
+    }.toMap()
+    return TemplateContent(
+        values = values,
+        images = bitmaps,
+        imageFits = imageFits.mapValues { if (it.value == "FIT") ImageFit.FIT else ImageFit.CROP },
+        imageOverlays = imageOverlays,
+        textPresets = textPresets,
+        brandLock = brandLock
+    )
 }

@@ -1,28 +1,18 @@
-# Gradle
-.gradle/
-**/build/
-
-# Android Studio / IntelliJ
-.idea/
 *.iml
-local.properties
-captures/
-.externalNativeBuild/
-.cxx/
-
-# Signing
-*.jks
-*.keystore
-
-# OS
+.gradle
+.kotlin
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
 .DS_Store
-Thumbs.db
-
-# Generated
-*.apk
-*.aab
-
-# Signing material and encoded secrets
-*.p12
-*.pem
-*keystore-base64*
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+.env
+debug.keystore

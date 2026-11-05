@@ -2,9 +2,6 @@ package com.sdtech.studio.ui.screens
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.AudioAttributes
-import android.media.MediaMetadataRetriever
-import android.media.MediaPlayer
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,7 +12,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,18 +19,15 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sdtech.studio.SDStudioApplication
 import com.sdtech.studio.data.model.ProjectType
+import com.sdtech.studio.media.BindPlayerHolderLifecycle
+import com.sdtech.studio.media.Media3FrameExtractor
 import com.sdtech.studio.render.*
 import com.sdtech.studio.video.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -48,8 +41,8 @@ private const val DEFAULT_SCENE_MS = 3_000L
 @Composable
 fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (String) -> Unit = {}) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val app = remember(context) { (context.applicationContext as SDStudioApplication).appContainer }
+    val playerHolder = app.playerHolder
     val scope = rememberCoroutineScope()
     val json = remember { Json { ignoreUnknownKeys = true } }
     val brandKit by app.brandKitRepository.brandKit.collectAsState(initial = null)
@@ -64,9 +57,7 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
     var loading by remember { mutableStateOf(true) }
     var renderError by remember { mutableStateOf<String?>(null) }
     var previewBitmaps by remember { mutableStateOf<Map<String, Bitmap>>(emptyMap()) }
-    val latestPreviewBitmaps = rememberUpdatedState(previewBitmaps)
     var wasPlayingBeforeScrub by remember { mutableStateOf(false) }
-    var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var playbackJob by remember { mutableStateOf<Job?>(null) }
 
     val scenes = payload?.scenes.orEmpty()
@@ -77,47 +68,30 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
     val globalPosition = durations.take(currentIndex).sum() + positionMs.coerceIn(0L, currentDuration)
     val currentScene = scenes.getOrNull(currentIndex)
 
-    fun releasePlayer() {
-        runCatching { player?.setOnCompletionListener(null); player?.stop() }
-        runCatching { player?.reset(); player?.release() }
-        player = null
+    fun stopAudio() {
+        playerHolder.stop()
     }
 
     fun pausePreview() {
         playbackJob?.cancel(); playbackJob = null
-        runCatching { player?.pause() }
+        playerHolder.pause()
         playing = false
     }
 
-    fun createAudioPlayer(scene: Scene, offsetMs: Long) {
-        releasePlayer()
+    fun startSceneVoice(scene: Scene, offsetMs: Long) {
+        stopAudio()
         val path = scene.voiceFilePath?.takeIf { it.isNotBlank() && File(it).isFile } ?: return
-        val media = MediaPlayer()
-        player = media
-        runCatching {
-            media.setAudioAttributes(AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                .build())
-            media.setDataSource(path)
-            media.setOnPreparedListener { prepared ->
-                if (player === prepared && playing) {
-                    runCatching { if (offsetMs > 0) prepared.seekTo(offsetMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()) }
-                    runCatching { prepared.start() }
-                }
-            }
-            media.setOnErrorListener { failed, _, _ ->
-                if (player === failed) releasePlayer()
-                true
-            }
-            media.prepareAsync()
-        }.onFailure { releasePlayer() }
+        playerHolder.playFile(
+            file = File(path),
+            startPositionMs = offsetMs.coerceAtLeast(0L),
+            isSpeech = true
+        )
     }
 
     fun startPreview(index: Int = currentIndex, offsetMs: Long = positionMs) {
         if (scenes.isEmpty()) return
         playbackJob?.cancel()
-        releasePlayer()
+        stopAudio()
         var safeIndex = index.coerceIn(0, scenes.lastIndex)
         var safeOffset = offsetMs
         if (safeIndex == scenes.lastIndex && safeOffset >= (durations.lastOrNull() ?: DEFAULT_SCENE_MS)) {
@@ -134,7 +108,7 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
                 currentIndex = sceneIndex
                 val duration = durations.getOrNull(sceneIndex) ?: DEFAULT_SCENE_MS
                 val scene = scenes[sceneIndex]
-                createAudioPlayer(scene, startOffset)
+                startSceneVoice(scene, startOffset)
                 val startedAt = android.os.SystemClock.elapsedRealtime()
                 while (playing) {
                     val elapsed = startOffset + (android.os.SystemClock.elapsedRealtime() - startedAt)
@@ -142,7 +116,7 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
                     if (elapsed >= duration) break
                     delay(60)
                 }
-                releasePlayer()
+                stopAudio()
                 if (!playing) break
                 sceneIndex++
                 startOffset = 0L
@@ -162,105 +136,137 @@ fun QuickPreviewScreen(projectId: String, onBack: () -> Unit = {}, onExport: (St
         if (project != null && project.type == ProjectType.VIDEO) {
             title = project.title
             ratio = project.ratio
-            payload = runCatching { json.decodeFromString<VideoProjectPayload>(project.payloadJson) }.getOrNull()
+            payload = runCatching {
+                com.sdtech.studio.video.domain.ProjectDocumentMigrator.decodeAsLegacyPayload(
+                    projectId = project.id,
+                    canvasRatio = project.ratio,
+                    payloadJson = project.payloadJson
+                )
+            }.getOrNull()
         }
         loading = false
     }
 
-    LaunchedEffect(payload, brandKit, logos, ratio) {
+    var renderRetryToken by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(payload, brandKit, logos, ratio, renderRetryToken) {
         val current = payload ?: return@LaunchedEffect
         if (current.scenes.isEmpty()) return@LaunchedEffect
         renderError = null
-        val rendered = withContext(Dispatchers.IO) {
-            val templates = TemplateRepository(context).loadSceneTemplates().associateBy { it.id }
-            val result = linkedMapOf<String, Bitmap>()
-            current.scenes.forEach { scene ->
-                val templateId = when {
-                    scene.type == SceneType.OUTRO -> "scene_outro"
-                    scene.textStyle == SceneTextStyle.BULLET_POINT -> "scene_bullet"
-                    else -> "scene_statement"
-                }
-                val original = templates[templateId] ?: return@forEach
-                var sourceImage: Bitmap? = null
-                try {
-                    val uriString = scene.backgroundUri
-                    if (!uriString.isNullOrBlank() && (scene.backgroundType == SceneBackgroundType.IMAGE || scene.backgroundType == SceneBackgroundType.VIDEO_CLIP)) {
-                        sourceImage = runCatching {
-                            val uri = Uri.parse(uriString)
-                            if (scene.backgroundType == SceneBackgroundType.VIDEO_CLIP) {
-                                MediaMetadataRetriever().let { retriever ->
-                                    try { retriever.setDataSource(context, uri); retriever.getFrameAtTime(0) }
-                                    finally { retriever.release() }
+        val rendered = com.sdtech.studio.performance.ErrorBoundary.runGuarded(
+            source = "QuickPreview:$projectId",
+            title = "Scene preview issue",
+            message = "Could not render the video scene previews. Tap Retry to try again.",
+            onRetry = { renderRetryToken++ }
+        ) {
+            com.sdtech.studio.performance.RenderDispatcher.withRenderContext {
+                val templates = TemplateRepository(context).loadSceneTemplates().associateBy { it.id }
+                val result = linkedMapOf<String, Bitmap>()
+                val previewMaxEdge = (PREVIEW_WIDTH * com.sdtech.studio.performance.ThermalGuard.effectivePreviewScale)
+                    .roundToInt()
+                    .coerceAtLeast(180)
+                current.scenes.forEach { scene ->
+                    val cacheKey = "quick_preview:$projectId:${scene.id}:$ratio:${scene.hashCode()}:$previewMaxEdge"
+                    val cachedPreview = com.sdtech.studio.performance.CentralBitmapPool.get(cacheKey)
+                    if (cachedPreview != null) {
+                        result[scene.id] = cachedPreview
+                        return@forEach
+                    }
+                    val templateId = when {
+                        scene.type == SceneType.OUTRO -> "scene_outro"
+                        scene.textStyle == SceneTextStyle.BULLET_POINT -> "scene_bullet"
+                        else -> "scene_statement"
+                    }
+                    val original = templates[templateId] ?: return@forEach
+                    var sourceImage: Bitmap? = null
+                    try {
+                        val uriString = scene.backgroundUri
+                        if (!uriString.isNullOrBlank() && (scene.backgroundType == SceneBackgroundType.IMAGE || scene.backgroundType == SceneBackgroundType.VIDEO_CLIP)) {
+                            sourceImage = runCatching {
+                                val uri = Uri.parse(uriString)
+                                if (scene.backgroundType == SceneBackgroundType.VIDEO_CLIP) {
+                                    Media3FrameExtractor.extractFrameCached(
+                                        context = context,
+                                        uri = uri,
+                                        positionMs = scene.clipTrimStartMs.coerceAtLeast(0L),
+                                        maxEdgePx = previewMaxEdge
+                                    )
+                                } else {
+                                    context.contentResolver.openInputStream(uri)?.use {
+                                        BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = 2 })
+                                    }
                                 }
-                            } else context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
-                        }.getOrNull()
-                    }
-                    val bg = original.layers.filterIsInstance<TemplateLayer.Background>().firstOrNull()
-                    val withBackground = if (bg == null) original else {
-                        val replacement = when (scene.backgroundType) {
-                            SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID, color = brandKit?.palette?.firstOrNull()?.hex ?: "#101C2C")
-                            SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT, color = "#101C2C", endColor = "#16A6A0")
-                            SceneBackgroundType.IMAGE, SceneBackgroundType.VIDEO_CLIP -> bg.copy(kind = BackgroundKind.IMAGE, imageAsset = "scene_bg")
+                            }.getOrNull()
                         }
-                        original.copy(layers = original.layers.map { if (it.id == bg.id) replacement else it })
-                    }
-                    val withOverlay = if (scene.backgroundType == SceneBackgroundType.IMAGE || scene.backgroundType == SceneBackgroundType.VIDEO_CLIP) {
-                        val overlay = TemplateLayer.Shape("preview_image_overlay", 0f, 0f, 100f, 100f, ShapeKind.RECTANGLE, "#66101C2C")
-                        val firstText = withBackground.layers.indexOfFirst { it is TemplateLayer.Text }.let { if (it < 0) withBackground.layers.size else it }
-                        withBackground.copy(layers = withBackground.layers.toMutableList().also { it.add(firstText, overlay) })
-                    } else withBackground
-                    val values = when (scene.type) {
-                        SceneType.OUTRO -> mapOf("headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "cta" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.defaultCta?.takeIf(String::isNotBlank) ?: "FOLLOW FOR MORE" }, "monogram" to (brandKit?.name?.take(2)?.uppercase() ?: "SD"))
-                        SceneType.INTRO -> mapOf("label" to (brandKit?.name ?: "INTRODUCTION").uppercase(), "keyword" to "", "headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "footer" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.slogan?.takeIf(String::isNotBlank) ?: "Your brand. Your story." })
-                        SceneType.CONTENT -> {
-                            val words = scene.text.trim().split(Regex("\\s+")).filter(String::isNotBlank)
-                            val highlighted = scene.textStyle == SceneTextStyle.HIGHLIGHTED_KEYWORD && words.isNotEmpty()
-                            mapOf("label" to "THE KEY IDEA", "keyword" to if (highlighted) words.first() else "", "headline" to when {
-                                scene.textStyle == SceneTextStyle.BULLET_POINT -> "• ${scene.text}"
-                                highlighted -> words.drop(1).joinToString(" ")
-                                else -> scene.text
-                            }, "footer" to "")
+                        val bg = original.layers.filterIsInstance<TemplateLayer.Background>().firstOrNull()
+                        val withBackground = if (bg == null) original else {
+                            val replacement = when (scene.backgroundType) {
+                                SceneBackgroundType.BRAND_COLOR -> bg.copy(kind = BackgroundKind.SOLID, color = brandKit?.palette?.firstOrNull()?.hex ?: "#101C2C")
+                                SceneBackgroundType.GRADIENT -> bg.copy(kind = BackgroundKind.GRADIENT, color = "#101C2C", endColor = "#16A6A0")
+                                SceneBackgroundType.IMAGE, SceneBackgroundType.VIDEO_CLIP -> bg.copy(kind = BackgroundKind.IMAGE, imageAsset = "scene_bg")
+                            }
+                            original.copy(layers = original.layers.map { if (it.id == bg.id) replacement else it })
                         }
+                        val withOverlay = if (scene.backgroundType == SceneBackgroundType.IMAGE || scene.backgroundType == SceneBackgroundType.VIDEO_CLIP) {
+                            val overlay = TemplateLayer.Shape("preview_image_overlay", 0f, 0f, 100f, 100f, ShapeKind.RECTANGLE, "#66101C2C")
+                            val firstText = withBackground.layers.indexOfFirst { it is TemplateLayer.Text }.let { if (it < 0) withBackground.layers.size else it }
+                            withBackground.copy(layers = withBackground.layers.toMutableList().also { it.add(firstText, overlay) })
+                        } else withBackground
+                        val values = when (scene.type) {
+                            SceneType.OUTRO -> mapOf("headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "cta" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.defaultCta?.takeIf(String::isNotBlank) ?: "FOLLOW FOR MORE" }, "monogram" to (brandKit?.name?.take(2)?.uppercase() ?: "SD"))
+                            SceneType.INTRO -> mapOf("label" to (brandKit?.name ?: "INTRODUCTION").uppercase(), "keyword" to "", "headline" to scene.text.lineSequence().firstOrNull().orEmpty(), "footer" to scene.text.lineSequence().drop(1).joinToString(" ").ifBlank { brandKit?.slogan?.takeIf(String::isNotBlank) ?: "Your brand. Your story." })
+                            SceneType.CONTENT -> {
+                                val words = scene.text.trim().split(Regex("\\s+")).filter(String::isNotBlank)
+                                val highlighted = scene.textStyle == SceneTextStyle.HIGHLIGHTED_KEYWORD && words.isNotEmpty()
+                                mapOf("label" to "THE KEY IDEA", "keyword" to if (highlighted) words.first() else "", "headline" to when {
+                                    scene.textStyle == SceneTextStyle.BULLET_POINT -> "• ${scene.text}"
+                                    highlighted -> words.drop(1).joinToString(" ")
+                                    else -> scene.text
+                                }, "footer" to "")
+                            }
+                        }
+                        val previewBmp = com.sdtech.studio.performance.CentralBitmapPool.getOrPut(cacheKey) {
+                            TemplateRenderer(context).render(
+                                withOverlay,
+                                TemplateContent(values = values, images = if (sourceImage != null) mapOf("scene_bg" to sourceImage!!) else emptyMap(), brandLock = false),
+                                ratio,
+                                theme = withOverlay.themes.firstOrNull(),
+                                options = RenderOptions(
+                                    logoPlacementMode = LogoPlacementMode.SAFE,
+                                    showSafeZones = false,
+                                    brandColors = brandKit?.palette.orEmpty().associate { it.name.lowercase() to it.hex },
+                                    maxDimension = previewMaxEdge
+                                ),
+                                brandKit = brandKit,
+                                logos = logos
+                            )
+                        }
+                        if (previewBmp != null) {
+                            result[scene.id] = previewBmp
+                        }
+                    } catch (_: Throwable) {
+                        // A bad/missing background asset should not prevent other scenes from rendering.
                     }
-                    val full = TemplateRenderer(context).render(
-                        withOverlay,
-                        TemplateContent(values = values, images = if (sourceImage != null) mapOf("scene_bg" to sourceImage!!) else emptyMap(), brandLock = false),
-                        ratio,
-                        theme = withOverlay.themes.firstOrNull(),
-                        options = RenderOptions(logoPlacementMode = LogoPlacementMode.SAFE, showSafeZones = false, brandColors = brandKit?.palette.orEmpty().associate { it.name.lowercase() to it.hex }),
-                        brandKit = brandKit,
-                        logos = logos
-                    )
-                    val profile = RatioProfile.forRatio(ratio)
-                    val height = (PREVIEW_WIDTH * profile.height.toFloat() / profile.width).roundToInt()
-                    result[scene.id] = Bitmap.createScaledBitmap(full, PREVIEW_WIDTH, height, true).also { if (it !== full) full.recycle() }
-                } catch (_: Throwable) {
-                    // A bad/missing background asset should not prevent other scenes from rendering.
-                } finally {
-                    sourceImage?.takeIf { !it.isRecycled }?.recycle()
                 }
+                result
             }
-            result
-        }
+        }.orEmpty()
         previewBitmaps = rendered
         if (rendered.isEmpty()) renderError = "Scene previews could not be rendered. Check the scene templates and media files."
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) pausePreview()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+    BindPlayerHolderLifecycle(
+        playerHolder = playerHolder,
+        onStop = {
             playbackJob?.cancel()
-            releasePlayer()
+            playbackJob = null
+            playing = false
         }
-    }
+    )
 
     fun jumpTo(index: Int) {
         val wasPlaying = playing
-        playbackJob?.cancel(); playbackJob = null; releasePlayer()
+        playbackJob?.cancel(); playbackJob = null; stopAudio()
         currentIndex = index.coerceIn(0, scenes.lastIndex)
         positionMs = 0L
         playing = false

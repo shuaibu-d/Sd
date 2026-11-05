@@ -1,0 +1,6 @@
+{
+  "name": "SD Studio",
+  "description": "SD Studio: Create scroll-stopping social media posts and turn voice-over scripts into explainer videos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

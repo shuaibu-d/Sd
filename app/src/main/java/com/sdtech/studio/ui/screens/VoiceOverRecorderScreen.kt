@@ -6,16 +6,14 @@ import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,21 +29,20 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sdtech.studio.SDStudioApplication
-import com.sdtech.studio.audio.AndroidAacLoudnessNormalizer
+import com.sdtech.studio.audio.EbuR128NormalizationAudioProcessor
+import com.sdtech.studio.audio.LiveWaveformBuffer
+import com.sdtech.studio.audio.WaveformCache
 import com.sdtech.studio.data.model.ProjectType
-import com.sdtech.studio.video.Scene
+import com.sdtech.studio.media.BindPlayerHolderLifecycle
 import com.sdtech.studio.video.VideoProjectPayload
 import com.sdtech.studio.video.effectiveDurationMs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -60,6 +57,7 @@ private class SceneVoiceRecorder(private val context: Context) {
         stop()
         file.parentFile?.mkdirs()
         if (file.exists()) file.delete()
+        @Suppress("DEPRECATION")
         val media = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(context) else MediaRecorder()
         try {
             media.setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -98,6 +96,7 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val app = remember(context) { (context.applicationContext as SDStudioApplication).appContainer }
+    val playerHolder = app.playerHolder
     val json = remember { Json { ignoreUnknownKeys = true; encodeDefaults = true } }
     val scope = rememberCoroutineScope()
     var payload by remember { mutableStateOf<VideoProjectPayload?>(null) }
@@ -109,7 +108,8 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
     var countdown by remember { mutableIntStateOf(0) }
     var countdownJob by remember { mutableStateOf<Job?>(null) }
     var liveLevel by remember { mutableFloatStateOf(0f) }
-    var liveWave by remember { mutableStateOf(listOf<Float>()) }
+    val liveWaveBuffer = remember { LiveWaveformBuffer() }
+    var liveWaveVersion by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var playing by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
@@ -117,14 +117,27 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
     var normalizationMessage by remember { mutableStateOf<String?>(null) }
     var manualDurationInput by remember { mutableStateOf("") }
     val recorder = remember(context) { SceneVoiceRecorder(context) }
-    var player by remember { mutableStateOf<MediaPlayer?>(null) }
     val audioManager = remember(context) { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     var focusRequest by remember { mutableStateOf<AudioFocusRequest?>(null) }
 
     suspend fun persist(next: VideoProjectPayload) {
         payload = next
         val old = app.projectRepository.getProject(projectId) ?: return
-        app.projectRepository.saveProject(old.copy(payloadJson = json.encodeToString(VideoProjectPayload.serializer(), next), updatedAt = System.currentTimeMillis()))
+        val now = System.currentTimeMillis()
+        val v2Doc = com.sdtech.studio.video.domain.ProjectDocumentMigrator.migrateV1ToV2(
+            projectId = projectId,
+            canvasRatio = old.ratio,
+            payload = next,
+            createdAtMs = old.createdAt,
+            updatedAtMs = now
+        )
+        app.projectRepository.saveProject(
+            old.copy(
+                payloadJson = com.sdtech.studio.video.domain.ProjectDocumentMigrator.encodeProjectDocument(v2Doc),
+                updatedAt = now,
+                documentVersion = com.sdtech.studio.video.domain.TimelineProject.CURRENT_VERSION
+            )
+        )
     }
 
     fun stopAndKeepTake() {
@@ -133,22 +146,48 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
         recording = false
         liveLevel = 0f
         if (file != null && duration > 250L && file.length() > 1024L) {
-            val levels = liveWave.ifEmpty { listOf(0.08f, 0.16f, 0.12f, 0.2f, 0.1f) }
+            val sampledArray = WaveformCache.put(file.absolutePath, liveWaveBuffer.toFloatArray())
+            val levels = List(sampledArray.size) { sampledArray[it] }
             val current = payload ?: return
             val scene = current.scenes.getOrNull(currentIndex) ?: return
             val updated = current.copy(scenes = current.scenes.toMutableList().also { list ->
                 val index = list.indexOfFirst { it.id == scene.id }
-                if (index >= 0) list[index] = list[index].copy(voiceFilePath = file.absolutePath, voiceOriginalFilePath = null, normalizedLufs = null, normalizedTruePeakDbtp = null, normalizationGainDb = null, voiceDurationMs = duration, waveformLevels = levels)
+                if (index >= 0) list[index] = list[index].copy(
+                    voiceFilePath = file.absolutePath,
+                    voiceOriginalFilePath = null,
+                    normalizedLufs = null,
+                    normalizedTruePeakDbtp = null,
+                    normalizationGainDb = null,
+                    voiceDurationMs = duration,
+                    waveformLevels = levels
+                )
             })
             scene.voiceFilePath?.let(::File)?.takeIf { it.absolutePath != file.absolutePath }?.delete()
             scene.voiceOriginalFilePath?.let(::File)?.takeIf { it.absolutePath != file.absolutePath }?.delete()
             payload = updated
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 val old = app.projectRepository.getProject(projectId)
-                if (old != null) app.projectRepository.saveProject(old.copy(payloadJson = json.encodeToString(VideoProjectPayload.serializer(), updated), updatedAt = System.currentTimeMillis()))
+                if (old != null) {
+                    val now = System.currentTimeMillis()
+                    val v2Doc = com.sdtech.studio.video.domain.ProjectDocumentMigrator.migrateV1ToV2(
+                        projectId = projectId,
+                        canvasRatio = old.ratio,
+                        payload = updated,
+                        createdAtMs = old.createdAt,
+                        updatedAtMs = now
+                    )
+                    app.projectRepository.saveProject(
+                        old.copy(
+                            payloadJson = com.sdtech.studio.video.domain.ProjectDocumentMigrator.encodeProjectDocument(v2Doc),
+                            updatedAt = now,
+                            documentVersion = com.sdtech.studio.video.domain.TimelineProject.CURRENT_VERSION
+                        )
+                    )
+                }
             }
         } else if (file != null) file.delete()
-        liveWave = emptyList()
+        liveWaveBuffer.reset()
+        liveWaveVersion = 0
         focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
         focusRequest = null
     }
@@ -161,7 +200,13 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
     LaunchedEffect(projectId) {
         val project = app.projectRepository.getProject(projectId)
         if (project != null && project.type == ProjectType.VIDEO) {
-            payload = runCatching { json.decodeFromString(VideoProjectPayload.serializer(), project.payloadJson) }.getOrNull()
+            payload = runCatching {
+                com.sdtech.studio.video.domain.ProjectDocumentMigrator.decodeAsLegacyPayload(
+                    projectId = project.id,
+                    canvasRatio = project.ratio,
+                    payloadJson = project.payloadJson
+                )
+            }.getOrNull()
         }
         isLoading = false
     }
@@ -172,28 +217,30 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
                 hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                 permissionDenied = !hasPermission
             }
-            if (event == Lifecycle.Event.ON_STOP) {
-                countdownJob?.cancel()
-                countdown = 0
-                stopAndKeepTake()
-                runCatching { player?.pause() }
-                playing = false
-            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             stopAndKeepTake()
-            runCatching { player?.release() }
-            player = null
         }
     }
+
+    BindPlayerHolderLifecycle(
+        playerHolder = playerHolder,
+        onStop = {
+            countdownJob?.cancel()
+            countdown = 0
+            stopAndKeepTake()
+            playing = false
+        }
+    )
 
     LaunchedEffect(recording) {
         while (recording && recorder.isRecording) {
             val level = recorder.level().coerceIn(0f, 1f)
             liveLevel = level
-            liveWave = (liveWave + level).takeLast(70)
+            liveWaveBuffer.push(level)
+            liveWaveVersion++
             delay(100)
         }
     }
@@ -203,10 +250,33 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
     val audioFile = scene?.voiceFilePath?.let(::File)
     val hasTake = audioFile?.exists() == true
     val durationMs = scene?.effectiveDurationMs
-    LaunchedEffect(scene?.id) { manualDurationInput = scene?.manualDurationMs?.div(1000L)?.toString().orEmpty(); normalizationMessage = null }
+
+    var cachedWaveform by remember(scene?.id, scene?.voiceFilePath) {
+        mutableStateOf(
+            WaveformCache.get(scene?.voiceFilePath)
+                ?: scene?.waveformLevels?.takeIf { it.isNotEmpty() }?.let { list ->
+                    FloatArray(list.size) { list[it] }
+                }
+                ?: FloatArray(0)
+        )
+    }
+
+    LaunchedEffect(scene?.id, scene?.voiceFilePath, scene?.waveformLevels) {
+        manualDurationInput = scene?.manualDurationMs?.div(1000L)?.toString().orEmpty()
+        normalizationMessage = null
+        playerHolder.stop()
+        playing = false
+        cachedWaveform = WaveformCache.getOrSample(
+            context = context,
+            filePath = scene?.voiceFilePath,
+            storedLevels = scene?.waveformLevels.orEmpty()
+        )
+    }
 
     fun startRecording() {
         val activeScene = scene ?: return
+        playerHolder.stop()
+        playing = false
         val dir = File(context.filesDir, "voiceovers/$projectId")
         val file = File(dir, "${activeScene.id}-${System.currentTimeMillis()}.m4a")
         val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
@@ -220,7 +290,8 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
             return
         }
         try {
-            liveWave = emptyList()
+            liveWaveBuffer.reset()
+            liveWaveVersion = 0
             recorder.start(file)
             recording = true
             errorMessage = null
@@ -253,19 +324,19 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
         scope.launch {
             try {
                 val original = activeScene.voiceOriginalFilePath?.let(::File)?.takeIf { it.isFile } ?: activeFile
-                val output = File(original.parentFile, "${activeScene.id}-normalized-${System.currentTimeMillis()}.m4a")
-                val result = withContext(Dispatchers.IO) {
-                    AndroidAacLoudnessNormalizer(targetLufs = -16.0, outputTruePeakCeilingDbtp = -1.5)
-                        .normalize(original, output)
-                }
+                val result = EbuR128NormalizationAudioProcessor.analyzeAudioFile(
+                    context = context,
+                    input = original,
+                    targetLufs = EbuR128NormalizationAudioProcessor.DEFAULT_TARGET_LUFS,
+                    truePeakCeilingDbtp = EbuR128NormalizationAudioProcessor.DEFAULT_TRUE_PEAK_CEILING_DBTP
+                )
                 if (result.alreadyWithinTolerance) {
-                    normalizationMessage = "Already close to the target loudness (${"%.1f".format(result.inputLufs)} LUFS). No re-encoding was needed."
+                    normalizationMessage = "Already close to the target loudness (${"%.1f".format(result.inputLufs)} LUFS). No gain adjustment needed."
                 } else {
-                    val oldActive = activeScene.voiceFilePath?.let(::File)
                     val updated = (payload ?: return@launch).copy(scenes = scenes.toMutableList().also { list ->
                         val index = list.indexOfFirst { it.id == activeScene.id }
                         if (index >= 0) list[index] = list[index].copy(
-                            voiceFilePath = result.outputFile.absolutePath,
+                            voiceFilePath = original.absolutePath,
                             voiceOriginalFilePath = original.absolutePath,
                             normalizedLufs = result.outputLufsEstimate,
                             normalizedTruePeakDbtp = result.outputTruePeakEstimateDbtp,
@@ -273,12 +344,10 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
                         )
                     })
                     persist(updated)
-                    if (oldActive != null && oldActive.absolutePath != original.absolutePath && oldActive.absolutePath != result.outputFile.absolutePath) oldActive.delete()
                     normalizationMessage = buildString {
-                        append("Normalized to approximately ${"%.1f".format(result.outputLufsEstimate)} LUFS; gain ${"%+.1f".format(result.appliedGainDb)} dB.")
+                        append("Normalized to approximately ${"%.1f".format(result.outputLufsEstimate)} LUFS; gain ${"%+.1f".format(result.appliedGainDb)} dB (applied via Media3 AudioProcessor during export).")
                         if (result.peakLimited) append(" Gain was limited by the true-peak ceiling, so the target loudness could not be reached without risking clipping.")
                         if (result.boostLimited) append(" Boost was capped at +18 dB to avoid excessively raising room noise.")
-                        append(" Original take retained.")
                     }
                 }
             } catch (cancelled: CancellationException) {
@@ -313,7 +382,7 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Voice-over recorder") }, navigationIcon = { TextButton(onClick = { stopAndKeepTake(); onBack() }) { Text("Back") } }) }
+        topBar = { TopAppBar(title = { Text("Voice-over recorder") }, navigationIcon = { TextButton(onClick = { stopAndKeepTake(); playerHolder.release(); onBack() }) { Text("Back") } }) }
     ) { padding ->
         when {
             isLoading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -354,12 +423,36 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
                             if (recording) Text("LIVE", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                         }
                         Canvas(Modifier.fillMaxWidth().height(56.dp)) {
-                            val values = if (recording) liveWave else scene.waveformLevels
-                            val count = values.size.coerceAtLeast(1)
-                            val step = size.width / count
-                            values.forEachIndexed { index, value ->
-                                val h = (value.coerceIn(0.04f, 1f) * size.height * 0.88f).coerceAtLeast(3f)
-                                drawLine(if (recording) Color(0xFFE45B62) else Color(0xFF16A6A0), androidx.compose.ui.geometry.Offset(index * step + step / 2, (size.height - h) / 2), androidx.compose.ui.geometry.Offset(index * step + step / 2, (size.height + h) / 2), strokeWidth = (step * 0.55f).coerceAtLeast(2f), cap = StrokeCap.Round)
+                            // Read liveWaveVersion when recording to trigger redraw without allocating lists
+                            if (recording) {
+                                val tick = liveWaveVersion
+                                val count = if (tick >= 0) liveWaveBuffer.count.coerceAtLeast(1) else 1
+                                val step = size.width / count
+                                for (index in 0 until liveWaveBuffer.count) {
+                                    val value = liveWaveBuffer.getAt(index)
+                                    val h = (value.coerceIn(0.04f, 1f) * size.height * 0.88f).coerceAtLeast(3f)
+                                    drawLine(
+                                        color = Color(0xFFE45B62),
+                                        start = androidx.compose.ui.geometry.Offset(index * step + step / 2, (size.height - h) / 2),
+                                        end = androidx.compose.ui.geometry.Offset(index * step + step / 2, (size.height + h) / 2),
+                                        strokeWidth = (step * 0.55f).coerceAtLeast(2f),
+                                        cap = StrokeCap.Round
+                                    )
+                                }
+                            } else {
+                                val values = cachedWaveform
+                                val count = values.size.coerceAtLeast(1)
+                                val step = size.width / count
+                                for (index in values.indices) {
+                                    val h = (values[index].coerceIn(0.04f, 1f) * size.height * 0.88f).coerceAtLeast(3f)
+                                    drawLine(
+                                        color = Color(0xFF16A6A0),
+                                        start = androidx.compose.ui.geometry.Offset(index * step + step / 2, (size.height - h) / 2),
+                                        end = androidx.compose.ui.geometry.Offset(index * step + step / 2, (size.height + h) / 2),
+                                        strokeWidth = (step * 0.55f).coerceAtLeast(2f),
+                                        cap = StrokeCap.Round
+                                    )
+                                }
                             }
                         }
                         if (recording) LinearProgressIndicator(progress = { liveLevel }, modifier = Modifier.fillMaxWidth())
@@ -367,24 +460,31 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
                             Button(onClick = { if (recording) stopAndKeepTake() else beginCountdown() }, enabled = countdown == 0 && !normalizing, modifier = Modifier.weight(1f)) { Text(if (recording) "Stop" else if (hasTake) "Re-record" else "Record") }
                             OutlinedButton(onClick = {
                                 if (hasTake && !recording) {
-                                    runCatching { player?.release() }
-                                    player = MediaPlayer().apply {
-                                        setDataSource(audioFile!!.absolutePath)
-                                        setOnCompletionListener { playing = false; it.release(); player = null }
-                                        prepare(); start()
+                                    if (playing) {
+                                        playerHolder.stop()
+                                        playing = false
+                                    } else {
+                                        playing = true
+                                        playerHolder.playFile(
+                                            file = audioFile!!,
+                                            isSpeech = true,
+                                            onEnded = { playing = false },
+                                            onError = { playing = false }
+                                        )
                                     }
-                                    playing = true
                                 }
                             }, enabled = hasTake && !recording && !normalizing, modifier = Modifier.weight(1f)) { Text(if (playing) "Playing" else "Play") }
                         }
                         OutlinedButton(onClick = {
                             if (!recording && hasTake) {
+                                playerHolder.stop()
+                                playing = false
                                 audioFile?.delete()
                                 scene.voiceOriginalFilePath?.let(::File)?.delete()
+                                cachedWaveform = FloatArray(0)
                                 val updated = payload!!.copy(scenes = scenes.toMutableList().also { list -> list[currentIndex] = list[currentIndex].copy(voiceFilePath = null, voiceOriginalFilePath = null, normalizedLufs = null, normalizedTruePeakDbtp = null, normalizationGainDb = null, voiceDurationMs = null, waveformLevels = emptyList()) })
                                 normalizationMessage = null
                                 scope.launch { persist(updated) }
-                                runCatching { player?.release() }; player = null; playing = false
                             }
                         }, enabled = hasTake && !recording && !normalizing, modifier = Modifier.fillMaxWidth()) { Text("Delete take") }
                         if (scene.voiceDurationMs != null) Text("Take: ${formatDuration(scene.voiceDurationMs)}", style = MaterialTheme.typography.bodySmall)
@@ -406,14 +506,18 @@ fun VoiceOverRecorderScreen(projectId: String, onBack: () -> Unit = {}) {
                             scene.normalizedLufs?.let { Text("Normalized: ${"%.1f".format(it)} LUFS · peak ${"%.1f".format(scene.normalizedTruePeakDbtp ?: 0.0)} dBTP · ${"%+.1f".format(scene.normalizationGainDb ?: 0.0)} dB gain", style = MaterialTheme.typography.bodySmall) }
                             normalizationMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary) }
                         }
-                        OutlinedTextField(
-                            value = manualDurationInput,
-                            onValueChange = { manualDurationInput = it.filter { char -> char.isDigit() }.take(5) },
-                            label = { Text("Manual scene duration (seconds, optional)") },
-                            supportingText = { Text("Leave blank to use voice length + 0.4 seconds.") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("SCENE DURATION · SECONDS (OPTIONAL)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                            BasicTextField(
+                                value = manualDurationInput,
+                                onValueChange = { manualDurationInput = it.filter { char -> char.isDigit() }.take(5) },
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                                singleLine = true
+                            )
+                            Text("Leave blank to use voice length + 0.4 seconds.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
                         OutlinedButton(onClick = {
                             val seconds = manualDurationInput.toLongOrNull()
                             val updated = payload!!.copy(scenes = scenes.toMutableList().also { list ->
