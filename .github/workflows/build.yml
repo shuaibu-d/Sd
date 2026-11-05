@@ -28,10 +28,10 @@ jobs:
           gradle-version: "9.7.0"
 
       - name: Run unit tests & enforce performance budgets (docs/PERFORMANCE.md)
-        run: ./gradlew testDebugUnitTest --info
+        run: bash ./gradlew testDebugUnitTest --info
 
       - name: Assemble debug APK
-        run: ./gradlew assembleDebug
+        run: bash ./gradlew assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
